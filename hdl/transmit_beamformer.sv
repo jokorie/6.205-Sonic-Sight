@@ -22,13 +22,18 @@ module transmit_beamformer #(
     logic [9:0] write_index;                           // Write index for the circular buffer
     logic [9:0] read_index [NUM_TRANSMITTERS-1:0];     // Read indices for each transmitter
 
-    // Calculated Parameters
-    parameter real WAVELENGTH = SPEED_OF_SOUND / TARGET_FREQ; // Wavelength of the 40 kHz signal in mm
+    // Calculated Parameters (Use `localparam` instead)
+    localparam real WAVELENGTH = SPEED_OF_SOUND / TARGET_FREQ; // Wavelength of the 40 kHz signal in mm
 
-    // Dynamic Phase Delays for Beamforming
-    parameter integer phase_delay [NUM_TRANSMITTERS-1:0] = 
-        '{0, ELEMENT_SPACING * 360 / WAVELENGTH, 2 * ELEMENT_SPACING * 360 / WAVELENGTH, 
-          3 * ELEMENT_SPACING * 360 / WAVELENGTH}; // Phase delays in clock cycles for each transmitter
+    // Phase Delay Array
+    integer phase_delay [NUM_TRANSMITTERS-1:0];
+
+    // Initial block to calculate phase delays for each transmitter
+    initial begin
+        for (int i = 0; i < NUM_TRANSMITTERS; i++) begin
+            phase_delay[i] = (ELEMENT_SPACING * i * 360) / WAVELENGTH;
+        end
+    end
 
     // Always block for writing to the buffer
     always_ff @(posedge clk) begin
