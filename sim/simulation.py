@@ -8,7 +8,8 @@ SAMPLING_RATE = 100000
 PULSE_FREQUENCY = 40000
 SPEED_OF_SOUND = 343
 TIME_DELAY = .02 # in seconds
-OBJECT_VELOCITY = 20 # m/s
+OBJECT_VELOCITY = 30 # m/s
+BIT_RESOLUTION = 12
 
 
 # Phased Array Simulation
@@ -70,11 +71,9 @@ def distort_frequency(signal, sampling_rate=SAMPLING_RATE, distortion_frequency=
     return distorted_signal # amplitude modulation
 
 
-
-
 # Analog-to-Digital Converter (ADC) Simulation
 # Converts the generated analog pulse into digital values
-def adc_simulation(analog_signal, bit_resolution=16):
+def adc_simulation(analog_signal, bit_resolution=BIT_RESOLUTION):
     max_val = 2**(bit_resolution - 1) - 1
     digital_signal = np.round(analog_signal * max_val).astype(int)
     return digital_signal
@@ -171,9 +170,6 @@ if __name__ == "__main__":
 
 
 
-
-
-
     # Plot Frequency Spectrum to visualize effect of distortion
     # side bands appear. Which is natural
     plt.figure(figsize=(10, 6))
@@ -189,8 +185,6 @@ if __name__ == "__main__":
     plt.savefig('frequency_spectrum.png')
 
 
-
-
     # Plot Time-Domain Signal of Distorted Pulse
     plt.figure(figsize=(10, 4))
     t = np.linspace(0, len(final_distorted_pulse) / SAMPLING_RATE, len(final_distorted_pulse))
@@ -201,6 +195,3 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.tight_layout()
     plt.savefig('time_domain_distorted_pulse.png')
-
-
-
