@@ -9,8 +9,7 @@ module top_level(
 
   localparam PERIOD_DURATION = 2147483648; // in clock cycles 
   localparam BURST_DURATION = 1073741824; // in clock cycles   
-
-  localparam ECHO_THRESHOLD = 1000; // Example threshold for detection
+  localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
 
 
   // System Reset
@@ -31,6 +30,10 @@ module top_level(
 
   assign burst_start = active_pulse && ~prev_active_pulse;
 
+  always_ff @(posedge clk_100mhz) begin
+    prev_active_pulse <= active_pulse;
+  end
+
   logic [15:0] time_since_emission;
 
   evt_counter  #(
@@ -45,7 +48,7 @@ module top_level(
 
 
   // Transmit Beamforming Signals
-  logic signed tx_out [3:0];        // Output signals for the four transmitters
+  logic tx_out [3:0];        // Output signals for the four transmitters
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
@@ -53,12 +56,12 @@ module top_level(
     .tx_out(tx_out)
   );
 
-  // TODO: THE WAVE SIGNAL STARTS HIGH. MAKE SURE TO NOT FEED TX_OUT TO TRANSMITTERS IF !ACTIVE_PULSE
-
+  logic transmitters_input [3:0]; // TODO: DYLAN THE INPUT SIGNAL TO THE TRANSMITTER
+  assign transmitters_input = (active_pulse)? tx_out: 0;
 
   // Receive Beamforming Signals
-  logic signed [15:0] adc_in [3:0];        // Digital inputs from the 4 ADCs
-  logic signed [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
+  logic [15:0] adc_in [3:0];        // Digital inputs from the 4 ADCs
+  logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
   receive_beamform rx_beamform_inst (
