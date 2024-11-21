@@ -23,19 +23,12 @@ module time_of_flight (
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
             // Reset internal signals
-            measurement_active <= 1'b0;
+            measurement_active <= 1'b1;
             range_out <= 16'd0;
             valid_out <= 1'b0;
             object_detected <= 1'b0;
         end else begin
-            // Trigger input: Start measuring time
-            if (!measurement_active) begin
-                if (trigger_in) begin
-                    measurement_active <= 1'b1;
-                    valid_out <= 1'b0;
-                    object_detected <= 1'b0;
-                end
-            end else begin
+            if (measurement_active) begin
                 // Stop measuring when echo is detected
                 if (echo_detected) begin
                     measurement_active <= 1'b0;

@@ -7,53 +7,70 @@ module top_level(
   output logic [7:0] ss_an                 // Anode control for selecting display
 );
 
-  localparam BURST_DURATION = 2147483648; // in clock cycles   // TODO: BURST DURATION OF PULSE
+  localparam PERIOD_DURATION = 2147483648; // in clock cycles 
+  localparam BURST_DURATION = 1073741824; // in clock cycles   
+
+  localparam ECHO_THRESHOLD = 1000; // Example threshold for detection
+
 
   // System Reset
   logic sys_rst;
   assign sys_rst = btn[0];
 
-  logic burst_rst;
-  assign burst_rst = sys_rst || (time_since_emission == 0);  // TODO validate later
+  logic prev_active_pulse;
+  logic active_pulse;
+  logic burst_start;
+  pwm #(
+      .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
+      .DUTY_CYCLE_ON(BURST_DURATION)
+  ) pulse_cooldown (
+      .clk_in(clk),
+      .rst_in(rst_in),
+      .sig_out(active_pulse)
+  );
 
-  // Transmit Beamforming Signals
-  logic signed tx_out [3:0];        // Output signals for the four transmitters
+  assign burst_start = active_pulse && ~prev_active_pulse;
 
-  // Receive Beamforming Signals
-  logic signed [15:0] adc_in [3:0];        // Digital inputs from the 4 ADCs
-  logic signed [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
-  
   logic [15:0] time_since_emission;
 
-  evt_counter time_counter #(
+  evt_counter  #(
     .MAX_COUNT(BURST_DURATION)
-  )
+  ) time_counter
   (
       .clk_in(clk_in),
-      .rst_in(burst_rst),
+      .rst_in(rst_in || burst_start), // conditions to reset burst
       .evt_in(clk_in),
       .count_out(time_since_emission)
   );
 
 
+  // Transmit Beamforming Signals
+  logic signed tx_out [3:0];        // Output signals for the four transmitters
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
-    .rst_in(burst_rst),
+    .rst_in(rst_in || burst_start), // conditions to stop transmitting
     .tx_out(tx_out)
   );
+
+  // TODO: THE WAVE SIGNAL STARTS HIGH. MAKE SURE TO NOT FEED TX_OUT TO TRANSMITTERS IF !ACTIVE_PULSE
+
+
+  // Receive Beamforming Signals
+  logic signed [15:0] adc_in [3:0];        // Digital inputs from the 4 ADCs
+  logic signed [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
   receive_beamform rx_beamform_inst (
     .clk(clk_100mhz),
-    .rst_n(burst_rst),
+    .rst_n(rst_in || burst_start),
     .adc_in(adc_in),
     .aggregated_waveform(aggregated_waveform)
   );
 
+
   // Echo Detection Signal
   logic echo_detected;
-  localparam ECHO_THRESHOLD = 1000; // Example threshold for detection
   assign echo_detected = (aggregated_waveform > ECHO_THRESHOLD);
 
   
@@ -65,34 +82,28 @@ module top_level(
     .time_since_emission(time_since_emission),
     .echo_detected(echo_detected),
     .clk_in(clk_100mhz),
-    .rst_in(burst_rst),
+    .rst_in(rst_in || burst_start),
     .range_out(range_out),
     .valid_out(tof_valid_out),
     .tof_(tof_object_detected)
-  )
-
-  // Prepare FFT input: pack real and imaginary parts
-  assign fft_input = {beamform_data, 16'h0000}; // Real = beamform_data, Imaginary = 0
-  assign fft_valid = beamform_valid;           // Pass beamform valid signal to FFT
-
-  // Instantiate FFT module
-  fftmain fft_inst (
-      .i_clk(clk_100mhz),
-      .i_reset(burst_rst),
-      .i_ce(fft_valid),         // FFT valid signal
-      .i_sample(fft_input),     // Packed 32-bit FFT input
-      .o_result(fft_output),    // Packed 32-bit FFT output
-      .o_sync(fft_sync)         // Sync signal for FFT output
   );
 
-  // Unpack FFT output: extract real and imaginary parts
-  assign fft_real = fft_output[31:16];  // Upper 16 bits = Real part
-  assign fft_imag = fft_output[15:0];   // Lower 16 bits = Imaginary part
 
+  logic ready_velocity;
+  logic [15:0] velocity_result;
+
+  velocity velocity_calculator_inst (
+    .clk_in(clk_in),
+    .rst_in(rst_in || burst_start),
+    .echo_detected(echo_detected),
+    .receiver_data(aggregated_waveform),
+    .doppler_ready(ready_velocity),
+    .velocity_result(velocity_result)
+  );
   // Seven Segment Controller Instance
   seven_segment_controller controller (
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst),
+    .rst_in(rst_in || burst_start),
     .trigger_in(tof_valid_out), // TODO: how do you want to handle undetected objects
     .distance_in(range_out),
     .cat_out(ss_c),

@@ -4,6 +4,7 @@
 // 50% duty cycle PWM generator
 module pwm #(
     parameter PERIOD_IN_CLOCK_CYCLES = 2500, // 40 kHz period with 100 MHz clock
+    parameter DUTY_CYCLE_ON = 1250,
     parameter DEFAULT_OFFSET = 0
 )
 (
@@ -12,17 +13,14 @@ module pwm #(
     output logic sig_out
 );
 
-    // Calculate half-period for a 50% duty cycle
-    localparam HALF_PERIOD_IN_CLOCK_CYCLES = PERIOD_IN_CLOCK_CYCLES >> 1; // Divide by 2
-
     // Counter to track clock cycles
     logic [$clog2(PERIOD_IN_CLOCK_CYCLES)-1:0] count;
 
     // Counter instance
-    evt_counter evt_counter #(
+    evt_counter #(
         MAX_COUNT(PERIOD_IN_CLOCK_CYCLES),
         DEFAULT_OFFSET(DEFAULT_OFFSET)
-    )
+    ) counter
     (
         .clk_in(clk_in),
         .rst_in(rst_in),
@@ -32,7 +30,7 @@ module pwm #(
 
     // PWM signal generation: Output high for half the period
     always_comb begin
-        sig_out = (count < HALF_PERIOD_IN_CLOCK_CYCLES); // High during the first half of the period
+        sig_out = (count < DUTY_CYCLE_ON); // High during the first half of the period
     end
 
 endmodule
