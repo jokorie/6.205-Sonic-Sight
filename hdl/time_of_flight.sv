@@ -31,15 +31,9 @@ module time_of_flight (
             if (measurement_active) begin
                 // Stop measuring when echo is detected
                 if (echo_detected) begin
-                    measurement_active <= 1'b0;
+                    measurement_active <= 1'b0; // TODO: Need to figure out what were going to do with measurement activn
                     object_detected <= 1'b1;
-
-                    // Calculate distance in centimeters
-                    // Distance = (time_since_emission * (1 / clock_frequency) * SPEED_OF_SOUND) / 2
-                    // clock_frequency is 100 MHz -> time per cycle = 10 ns = 0.00000001 seconds
-                    range_out <= (SPEED_OF_SOUND * time_since_emission / 200000000);
-                    valid_out <= 1'b1;
-                    
+ 
                 end
                 // Check if maximum time window has been exceeded
                 else if (time_since_emission >= MAX_TIME_WINDOW) begin
@@ -50,7 +44,31 @@ module time_of_flight (
             end
         end
     end
+
+    logic numerator [31:0];
+    logic div_output [31:0];
+    assign numerator = SPEED_OF_SOUND * time_since_emission;
+    logic error_out;
+
+
+    divider #(.WIDTH(32))
+       tof_div (
+        .clk_in(clk_in),
+        .rst_in(rst_in),
+        .dividend_in(numerator),
+        .divisor_in(200000000),
+        .data_valid_in(echo_detected), // TODO: MAY NEED TO DELAY A CYCLE
+        .quotient_out(div_output),
+        .remainder_out(),
+        .data_valid_out(valid_out),
+        .error_out(error_out),
+        .busy_out()
+    );
+
+    assign range_out = div_output[15:0];
 endmodule
+
+
 
 `default_nettype wire
 
