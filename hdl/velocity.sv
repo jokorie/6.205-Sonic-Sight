@@ -1,11 +1,16 @@
-module velocity (
-    input        logic clk_in,        // System clock
-    input        logic rst_in,        // System reset
-    input        logic echo_detected,    // Valid signal for receiver input
-    input        logic [15:0] receiver_data,    // 16-bit real receiver input
-    output       logic doppler_ready,    // Ready signal for doppler_velocity module
-    output       logic [15:0] velocity_result   // Output velocity from doppler_velocity
+module velocity #(
+    parameter EMITTED_FREQUENCY = 40000
+) (
+    input        logic clk_in,                 // System clock
+    input        logic rst_in,                 // System reset
+    input        logic echo_detected,          // Valid signal for receiver input
+    input        logic [15:0] receiver_data,   // 16-bit real receiver input
+    output       logic doppler_ready,          // Ready signal for doppler_velocity module
+    output       logic [15:0] velocity_result  // Output velocity from doppler_velocity
 );
+
+    // Speed of sound in air (m/s)
+    localparam real SPEED_OF_SOUND = 343.0;
 
     // Internal signals
     logic [31:0] fft_input;           // Packed input to the FFT module
@@ -73,23 +78,28 @@ module velocity (
         end
     end
 
-    // Instantiate doppler_velocity module
-    logic [15:0] doppler_velocity_result;
+    // Internal register to store velocity
+    logic error_out;
+    logic [31:0] velocity_calc;
+    logic numerator [31:0];
+    assign numerator = (peak_frequency - EMITTED_FREQUENCY) * SPEED_OF_SOUND;
 
-    // TODO: might be multiple cycles when we add the divider module
-    doppler_velocity #(
-        .EMITTED_FREQUENCY(40000)  // Ultrasonic frequency in Hz
-    ) doppler_inst (
+    // Doppler formula: velocity = (Δf / f_emit) * speed_of_sound
+    // Δf = peak_frequency - EMITTED_FREQUENCY
+    divider #(.WIDTH(32))
+       velocity_div (
         .clk_in(clk_in),
         .rst_in(rst_in),
-        .start_calc(fft_sync),      // Trigger calculation at the start of FFT frame
-        .peak_frequency(peak_frequency),
-        .velocity(doppler_velocity_result)
+        .dividend_in(numerator),
+        .divisor_in(EMITTED_FREQUENCY),
+        .data_valid_in(fft_sync), // TODO: MAY NEED TO DELAY A CYCLE
+        .quotient_out(velocity_calc),
+        .remainder_out(),
+        .data_valid_out(doppler_ready),
+        .error_out(error_out),
+        .busy_out()
     );
-
-
-    // Output signals
-    assign doppler_ready = processing_done;  // Doppler module ready signal
-    assign velocity_result = doppler_velocity_result;
+    
+    assign velocity_result = velocity_calc[15:0];
 
 endmodule
