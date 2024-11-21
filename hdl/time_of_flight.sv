@@ -2,7 +2,7 @@
 `default_nettype none
 
 module time_of_flight (
-    input logic trigger_in,             // Start trigger for ToF calculation
+    input logic [31:0] time_since_emission,             // Start trigger for ToF calculation
     input logic echo_detected,          // Signal indicating the reflected pulse has been received
     input logic clk_in,                    // 100 MHz clock for precise timing
     input logic rst_in,                 // Active-high reset signal
@@ -17,14 +17,12 @@ module time_of_flight (
 
     
     // Internal Signals
-    logic [31:0] time_counter;          // 32-bit counter to measure the time delay in clock cycles
     logic measurement_active;           // Flag to indicate if measurement is in progress
 
     // Always block for ToF measurement
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
             // Reset internal signals
-            time_counter <= 32'd0;
             measurement_active <= 1'b0;
             range_out <= 16'd0;
             valid_out <= 1'b0;
@@ -34,28 +32,24 @@ module time_of_flight (
             if (!measurement_active) begin
                 if (trigger_in) begin
                     measurement_active <= 1'b1;
-                    time_counter <= 32'd1;
                     valid_out <= 1'b0;
                     object_detected <= 1'b0;
                 end
             end else begin
-                // Measure the time delay until echo is detected
-                time_counter <= time_counter + 1;
-
                 // Stop measuring when echo is detected
                 if (echo_detected) begin
                     measurement_active <= 1'b0;
                     object_detected <= 1'b1;
 
                     // Calculate distance in centimeters
-                    // Distance = (time_counter * (1 / clock_frequency) * SPEED_OF_SOUND) / 2
+                    // Distance = (time_since_emission * (1 / clock_frequency) * SPEED_OF_SOUND) / 2
                     // clock_frequency is 100 MHz -> time per cycle = 10 ns = 0.00000001 seconds
-                    range_out <= (SPEED_OF_SOUND * time_counter / 200000000);
+                    range_out <= (SPEED_OF_SOUND * time_since_emission / 200000000);
                     valid_out <= 1'b1;
                     
                 end
                 // Check if maximum time window has been exceeded
-                else if (time_counter >= MAX_TIME_WINDOW) begin
+                else if (time_since_emission >= MAX_TIME_WINDOW) begin
                     measurement_active <= 1'b0;
                     valid_out <= 1'b1;
                     object_detected <= 1'b0; // Indicate that no object was detected in time
