@@ -26,6 +26,7 @@ module top_level(
   ) pulse_cooldown (
       .clk_in(clk),
       .rst_in(rst_in),
+      .default_offset(0),
       .sig_out(active_pulse)
   );
 
@@ -54,6 +55,7 @@ module top_level(
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
     .rst_in(rst_in || burst_start), // conditions to stop transmitting
+    .beam_angle(0),    // TODO: change for dynamic beamforming
     .tx_out(tx_out)
   );
 

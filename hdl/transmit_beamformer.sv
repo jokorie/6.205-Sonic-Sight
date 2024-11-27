@@ -2,8 +2,8 @@
 `default_nettype none
 
 module transmit_beamformer #(
-    parameter integer PERIOD_DURATION = ...,         // TODO: Default
-    parameter integer BURST_DURATION = ...,          // TODO: Default
+    parameter integer PERIOD_DURATION = 16777216,         // TODO: Default
+    parameter integer BURST_DURATION = 524288,          // TODO: Default
     parameter integer NUM_TRANSMITTERS = 4,          // Number of transmitters
     parameter integer ELEMENT_SPACING = 5,          // Spacing between transmitters in mm
     parameter integer SPEED_OF_SOUND = 343000,      // Speed of sound in mm/s
@@ -15,7 +15,7 @@ module transmit_beamformer #(
 )(
     input  logic clk,                               // System clock
     input  logic rst_in,                            // Active-low reset signal
-    input  logic [ANGLE_WIDTH-1:0] beam_angle,      // Beamforming angle (index for LUT)
+    input  logic signed [ANGLE_WIDTH-1:0] beam_angle,      // Beamforming angle (index for LUT)
     output logic tx_out [NUM_TRANSMITTERS-1:0]      // Output signals for transmitters
 );
 
@@ -24,12 +24,14 @@ module transmit_beamformer #(
 
     // Sine LUT instantiation (returns unsigned sine values)
     logic [SIN_WIDTH-1:0] sin_theta; // Sine value for beam_angle
+    logic sign_bit;
     sin_lut #(
         .SIN_WIDTH(SIN_WIDTH),
         .ANGLE_WIDTH(ANGLE_WIDTH)
     ) sin_lookup (
         .angle(beam_angle),
-        .sin_value(sin_theta)
+        .sin_value(sin_theta),
+        .sign_bit(sign_bit)
     );
 
     // Generate PWM instances for each transmitter
@@ -39,7 +41,10 @@ module transmit_beamformer #(
             logic [DELAY_WIDTH-1:0] default_offset;
             
             // Calculate delay based on sine value
-            assign default_offset = (DELAY_PER_TRANSMITTER * i * sin_theta) >> (SIN_WIDTH - 1); // TODO: check math
+            // if want to propogate to left vs right. the ordering of which transmitter goes first toggles
+            assign default_offset = (sign_bit)?
+                (DELAY_PER_TRANSMITTER * (NUM_TRANSMITTERS - i) * sin_theta) >> (SIN_WIDTH - 1):
+                (DELAY_PER_TRANSMITTER * i * sin_theta) >> (SIN_WIDTH - 1); // TODO: check math
 
             // Instantiate PWM module
             pwm #(
