@@ -10,6 +10,9 @@ module top_level(
   localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles 
   localparam BURST_DURATION = 524288; // 2^19 in clock cycles   
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
+  localparam SIN_WIDTH = 16;               // Bit width for sine values
+  localparam ANGLE_WIDTH = 7;              // Bit width for beam angle input
+
 
 
   // System Reset
@@ -49,6 +52,21 @@ module top_level(
   );
 
 
+  logic signed [ANGLE_WIDTH-1:0] beam_angle
+  assign beam_angle = 0; // static beam forming perpendicular to board, in line with boresight
+
+  logic [SIN_WIDTH-1:0] sin_theta; // Sine value for beam_angle
+  logic sign_bit;
+  sin_lut #(
+      .SIN_WIDTH(SIN_WIDTH),
+      .ANGLE_WIDTH(ANGLE_WIDTH)
+  ) sin_lookup (
+      .angle(beam_angle),
+      .sin_value(sin_theta),
+      .sign_bit(sign_bit)
+  );
+
+
   // Transmit Beamforming Signals
   logic tx_out [3:0];        // Output signals for the four transmitters
   // Transmit Beamforming Instance
@@ -71,6 +89,8 @@ module top_level(
     .clk(clk_100mhz),
     .rst_n(rst_in || burst_start),
     .adc_in(adc_in),
+    .sin_theta(sin_theta),
+    .sign_bit(sig_bit),
     .aggregated_waveform(aggregated_waveform)
   );
 
