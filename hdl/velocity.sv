@@ -30,7 +30,7 @@ module velocity #(
             fft_input <= 32'b0;
             fft_valid <= 1'b0;
         end else begin
-            if (echo_detected) begin
+            if (echo_detected) begin // TODO: echo detected needs to stay 
                 fft_input <= {receiver_data, 16'h0000}; // Real + Imaginary zero-padded
                 fft_valid <= 1'b1;
             end else begin

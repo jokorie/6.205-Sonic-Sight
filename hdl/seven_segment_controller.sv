@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
+module seven_segment_controller #(
+  parameter COUNT_PERIOD = 100000
+  )
   (
     input wire clk_in,                   // System clock input
     input wire rst_in,                   // Active-high reset signal
