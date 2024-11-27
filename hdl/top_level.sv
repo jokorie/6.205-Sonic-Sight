@@ -14,6 +14,9 @@ module top_level (
   localparam SIN_WIDTH = 16;               // Bit width for sine values
   localparam ANGLE_WIDTH = 7;              // Bit width for beam angle input
   localparam NUM_TRANSDUCERS = 4;
+  localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
+  localparam ADC_DATA_WIDTH = 16;
+  localparam ADC_DATA_CLK_PERIOD = 5;
 
 
   // System Reset
@@ -29,7 +32,7 @@ module top_level (
       .DUTY_CYCLE_ON(BURST_DURATION)
   ) pulse_cooldown (
       .clk_in(clk),
-      .rst_in(rst_in),
+      .rst_in(sys_rst),
       .default_offset(0),
       .sig_out(active_pulse)
   );
@@ -47,7 +50,7 @@ module top_level (
   ) time_counter
   (
       .clk_in(clk_in),
-      .rst_in(rst_in || burst_start), // conditions to reset burst
+      .rst_in(sys_rst || burst_start), // conditions to reset burst
       .evt_in(clk_in),
       .count_out(time_since_emission)
   );
@@ -75,7 +78,7 @@ module top_level (
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
-    .rst_in(rst_in || burst_start), // conditions to stop transmitting
+    .rst_in(sys_rst || burst_start), // conditions to stop transmitting
     .sin_theta(sin_theta),
     .sign_bit(sig_bit),
     .tx_out(tx_out)
@@ -84,6 +87,34 @@ module top_level (
   assign transmitters_input = (active_pulse)? tx_out: 0;
 
   // TODO: INCLUDE SPI MODULE
+  logic [7:0]                trigger_count;
+  logic                      spi_trigger;
+  logic                      receiving;
+
+  evt_counter counter_1MHz_trigger
+   (.clk_in(clk_100mhz),
+    .rst_in(sys_rst),
+    .period_in(CYCLES_PER_TRIGGER),
+    .evt_in(clk_100mhz && !active_pulse),
+    .count_out(trigger_count));
+
+  assign spi_trigger = trigger_count == 0 && !active_pulse;
+
+  logic [ADC_DATA_WIDTH-1:0] spi_read_data;
+  logic                      spi_read_data_valid;
+
+  spi_con
+  #(  .DATA_WIDTH(ADC_DATA_WIDTH),
+      .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
+  ) spi_controller
+  (   .clk_in(clk_20mhz),
+      .rst_in(sys_rst || burst_start),
+      .trigger_in(spi_trigger),
+      .data_out(spi_read_data),
+      .data_valid_out(spi_read_data_valid),
+      .chip_data_in(cipo), // sdata on adc
+      .chip_clk_out(dclk), // sclk on adc
+      .chip_sel_out(cs));   // CS on adc
 
   // Receive Beamforming Signals
   logic [15:0] adc_in [NUM_TRANSDUCERS-1:0];        // Digital inputs from the 4 ADCs
@@ -92,7 +123,7 @@ module top_level (
   // Receive Beamforming Instance
   receive_beamform rx_beamform_inst (
     .clk(clk_100mhz),
-    .rst_n(rst_in || burst_start),
+    .rst_n(sys_rst || burst_start),
     .adc_in(adc_in),
     .sin_theta(sin_theta),
     .sign_bit(sig_bit),
@@ -113,7 +144,7 @@ module top_level (
     .time_since_emission(time_since_emission),
     .echo_detected(echo_detected),
     .clk_in(clk_100mhz),
-    .rst_in(rst_in || burst_start),
+    .rst_in(sys_rst || burst_start),
     .range_out(range_out),
     .valid_out(tof_valid_out),
     .tof_(tof_object_detected)
@@ -125,7 +156,7 @@ module top_level (
 
   velocity velocity_calculator_inst (
     .clk_in(clk_in),
-    .rst_in(rst_in || burst_start),
+    .rst_in(sys_rst || burst_start),
     .echo_detected(echo_detected),
     .receiver_data(aggregated_waveform),
     .doppler_ready(ready_velocity),
@@ -134,7 +165,7 @@ module top_level (
   // Seven Segment Controller Instance
   seven_segment_controller controller (
     .clk_in(clk_100mhz),
-    .rst_in(rst_in || burst_start),
+    .rst_in(sys_rst || burst_start),
     .trigger_in(tof_valid_out), // TODO: how do you want to handle undetected objects
     .distance_in(range_out),
     .cat_out(ss_c),
