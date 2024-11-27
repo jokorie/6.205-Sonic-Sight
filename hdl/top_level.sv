@@ -1,10 +1,11 @@
 `default_nettype none // prevents system from inferring an undeclared logic (good practice)
 
-module top_level(
+module top_level (
   input wire clk_100mhz,                   // 100 MHz onboard clock
   input wire [3:0] btn,                    // All four momentary button switches
   output logic [6:0] ss_c,                 // Cathode controls for the segments of the seven-segment display
-  output logic [7:0] ss_an                 // Anode control for selecting display
+  output logic [7:0] ss_an,                 // Anode control for selecting display
+  output logic [3:0] transmitters_input
 );
 
   localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles 
@@ -12,7 +13,7 @@ module top_level(
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
   localparam SIN_WIDTH = 16;               // Bit width for sine values
   localparam ANGLE_WIDTH = 7;              // Bit width for beam angle input
-
+  localparam NUM_TRANSDUCERS = 4;
 
 
   // System Reset
@@ -39,10 +40,10 @@ module top_level(
     prev_active_pulse <= active_pulse;
   end
 
-  logic [15:0] time_since_emission;
+  logic [$clog2(PERIOD_DURATION)-1:0] time_since_emission;
 
   evt_counter  #(
-    .MAX_COUNT(BURST_DURATION)
+    .MAX_COUNT(PERIOD_DURATION)
   ) time_counter
   (
       .clk_in(clk_in),
@@ -53,7 +54,9 @@ module top_level(
 
 
   logic signed [ANGLE_WIDTH-1:0] beam_angle
-  assign beam_angle = 0; // static beam forming perpendicular to board, in line with boresight
+  assign beam_angle = 1'sb0; // static beam forming perpendicular to board, in line with boresight
+  // Move from [-30, 30]. Step 10 degrees
+
 
   logic [SIN_WIDTH-1:0] sin_theta; // Sine value for beam_angle
   logic sign_bit;
@@ -68,20 +71,22 @@ module top_level(
 
 
   // Transmit Beamforming Signals
-  logic tx_out [3:0];        // Output signals for the four transmitters
+  logic tx_out [NUM_TRANSDUCERS-1:0];        // Output signals for the four transmitters
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
     .rst_in(rst_in || burst_start), // conditions to stop transmitting
-    .beam_angle(0),    // TODO: change for dynamic beamforming
+    .sin_theta(sin_theta),
+    .sign_bit(sig_bit),
     .tx_out(tx_out)
   );
 
-  logic transmitters_input [3:0]; // TODO: DYLAN THE INPUT SIGNAL TO THE TRANSMITTER
   assign transmitters_input = (active_pulse)? tx_out: 0;
 
+  // TODO: INCLUDE SPI MODULE
+
   // Receive Beamforming Signals
-  logic [15:0] adc_in [3:0];        // Digital inputs from the 4 ADCs
+  logic [15:0] adc_in [NUM_TRANSDUCERS-1:0];        // Digital inputs from the 4 ADCs
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
