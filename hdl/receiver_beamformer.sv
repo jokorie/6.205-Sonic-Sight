@@ -4,8 +4,8 @@
 module receive_beamform (
     input logic clk,                        // System clock
     input logic rst_n,                      // Active-low reset signal
-    input logic signed [15:0] adc_in [3:0], // Digital inputs from 4 ADCs
-    output logic signed [15:0] aggregated_waveform // Aggregated output waveform
+    input logic [15:0] adc_in [3:0], // Digital inputs from 4 ADCs
+    output logic [15:0] aggregated_waveform // Aggregated output waveform
 );
 
     // Parameters for delay values (use localparam instead)
