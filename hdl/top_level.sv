@@ -7,8 +7,8 @@ module top_level(
   output logic [7:0] ss_an                 // Anode control for selecting display
 );
 
-  localparam PERIOD_DURATION = 2147483648; // in clock cycles 
-  localparam BURST_DURATION = 1073741824; // in clock cycles   
+  localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles 
+  localparam BURST_DURATION = 524288; // 2^19 in clock cycles   
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
 
 
@@ -19,6 +19,7 @@ module top_level(
   logic prev_active_pulse;
   logic active_pulse;
   logic burst_start;
+  
   pwm #(
       .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
       .DUTY_CYCLE_ON(BURST_DURATION)
