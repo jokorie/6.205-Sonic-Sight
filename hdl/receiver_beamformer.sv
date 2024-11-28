@@ -30,7 +30,7 @@ module receive_beamform #(
     logic [4:0] read_index [NUM_RECEIVERS-1:0];              // Read indices for each receiver
     logic signed [31:0] combined_waveform;                   // Summation of delayed signals (32-bit to handle overflow)
 
-    localparam integer SAMPLE_DELAY_PER_RECEIVER = ELEMENT_SPACING * SAMPLING_RATE / SPEED_OF_SOUND;
+    localparam integer SAMPLE_DELAY_PER_RECEIVER_COMP = ELEMENT_SPACING * SAMPLING_RATE / SPEED_OF_SOUND;
 
     logic [$clog2(MAX_COUNT)-1] sampling_count;
     evt_counter #(
@@ -78,8 +78,8 @@ module receive_beamform #(
             for (int i = 0; i < NUM_RECEIVERS; i++) begin
                 logic [DELAY_WIDTH:0] delay_samples;
                 delay_samples = $rtoi((sign_bit)?
-                    (SAMPLE_DELAY_PER_RECEIVER * (NUM_RECEIVERS - i) * sin_theta) >> (SIN_WIDTH - 1):
-                    (SAMPLE_DELAY_PER_RECEIVER * i * sin_theta) >> (SIN_WIDTH - 1)); // TODO: check math
+                    (SAMPLE_DELAY_PER_RECEIVER_COMP * (NUM_RECEIVERS - i) * sin_theta) >> (SIN_WIDTH - 1):
+                    (SAMPLE_DELAY_PER_RECEIVER_COMP * i * sin_theta) >> (SIN_WIDTH - 1)); // TODO: check math
 
                 if (write_index >= delay_samples)
                     read_index[i] = write_index - delay_samples;

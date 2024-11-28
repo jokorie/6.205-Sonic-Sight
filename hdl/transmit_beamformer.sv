@@ -19,8 +19,8 @@ module transmit_beamformer #(
     output logic tx_out [NUM_TRANSMITTERS-1:0]      // Output signals for transmitters
 );
 
-    // Calculate the delay per transmitter in clock cycles
-    localparam integer DELAY_PER_TRANSMITTER = ELEMENT_SPACING * CLK_FREQ / SPEED_OF_SOUND;
+    // Calculate the delay per transmitter component in clock cycles
+    localparam integer DELAY_PER_TRANSMITTER_COMP = ELEMENT_SPACING * CLK_FREQ / SPEED_OF_SOUND;
 
     // Generate PWM instances for each transmitter
     genvar i;
@@ -31,8 +31,8 @@ module transmit_beamformer #(
             // Calculate delay based on sine value
             // if want to propogate to left vs right. the ordering of which transmitter goes first toggles
             assign default_offset = (sign_bit)?
-                (DELAY_PER_TRANSMITTER * (NUM_TRANSMITTERS - i) * sin_theta) >> (SIN_WIDTH - 1):
-                (DELAY_PER_TRANSMITTER * i * sin_theta) >> (SIN_WIDTH - 1); // TODO: check math
+                (DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - i) * sin_theta) >> (SIN_WIDTH - 1):
+                (DELAY_PER_TRANSMITTER_COMP * i * sin_theta) >> (SIN_WIDTH - 1); // TODO: check math
 
             // Instantiate PWM module
             pwm #(
