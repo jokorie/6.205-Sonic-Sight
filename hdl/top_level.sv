@@ -107,7 +107,7 @@ module top_level (
   #(  .DATA_WIDTH(ADC_DATA_WIDTH),
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
   ) spi_controller
-  (   .clk_in(clk_20mhz),
+  (   .clk_in(clk_100mhz),
       .rst_in(sys_rst || burst_start),
       .trigger_in(spi_trigger),
       .data_out(spi_read_data),
