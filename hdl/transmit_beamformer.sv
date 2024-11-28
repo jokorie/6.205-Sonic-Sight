@@ -35,10 +35,8 @@ module transmit_beamformer #(
                 (DELAY_PER_TRANSMITTER_COMP * i * sin_theta) >> (SIN_WIDTH - 1); // TODO: check math
 
             // Instantiate PWM module
-            pwm #(
-                .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION),
-                .DUTY_CYCLE_ON(BURST_DURATION)
-            ) wave_generator (
+            // Need to actually wiggle the wave high low at 40 khz freq
+            pwm wave_generator (
                 .clk_in(clk),
                 .rst_in(rst_in),
                 .default_offset(default_offset),
