@@ -138,7 +138,6 @@ module top_level (
   
   logic [15:0] range_out;
   logic tof_valid_out;
-  logic tof_object_detected;
 
   time_of_flight tof (
     .time_since_emission(time_since_emission),
@@ -146,8 +145,7 @@ module top_level (
     .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start),
     .range_out(range_out),
-    .valid_out(tof_valid_out),
-    .tof_(tof_object_detected)
+    .valid_out(tof_valid_out)
   );
 
 
@@ -162,6 +160,7 @@ module top_level (
     .doppler_ready(ready_velocity),
     .velocity_result(velocity_result)
   );
+  
   // Seven Segment Controller Instance
   seven_segment_controller controller (
     .clk_in(clk_100mhz),

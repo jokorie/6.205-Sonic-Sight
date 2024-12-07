@@ -21,77 +21,42 @@ async def test_time_of_flight_basic(dut):
     # Clock generation
     await cocotb.start( generate_clock( dut.clk_in ) ) #launches clock
     # Reset the design
+    dut.echo_detected.value = 0
     await Timer(100, units="ns")
     dut.rst_in.value = 1
     await Timer(10, units="ns")
     dut.rst_in.value = 0
     await Timer(10, units="ns")
 
-    # Start the ToF measurement
-    dut.trigger_in.value = 1
-    
-    await RisingEdge(dut.clk_in)
-    dut.trigger_in.value = 0
-
     # Wait for some time to simulate the distance
     # Simulate the time taken for sound to travel a certain distance and back.
     distance_cm = 10  # Simulate an object at 100 cm
-    time_taken_ns = int((distance_cm * 2) / 34300 * 1e9)  # Round trip time in ns
+    time_taken_ns = int((distance_cm * 2) * 1e9 / 34300)  # Round trip time in ns
             
     # Wait for the calculated time (assuming 10ns clock period)
     await Timer(time_taken_ns, units="ns")
     
+    time_since_emission = int(time_taken_ns / 10)
+    print(time_since_emission)
+    
     # Signal that the echo was detected
     dut.echo_detected.value = 1
+    dut.time_since_emission.value = time_since_emission # clock cycles since emission
     await RisingEdge(dut.clk_in)
-    dut.echo_detected.value = 0
-
     # Wait for processing
     await RisingEdge(dut.valid_out)
-    assert dut.valid_out.value == 1, "Valid output should be asserted"
-    calculated_distance = int(dut.range_out.value)
+    await RisingEdge(dut.clk_in)
+    calculated_distance = int(dut.range_out)
 
     # Compare expected and actual distance
     expected_distance = distance_cm
     tolerance_cm = 1  # Allow for some error margin due to integer rounding
-    assert (abs(calculated_distance - expected_distance) <= tolerance_cm and dut.object_detected.value == 1),  \
+    assert (abs(calculated_distance - expected_distance) <= tolerance_cm),  \
         f"Expected distance: {expected_distance}, Got: {calculated_distance}"
 
     cocotb.log.info(f"Basic ToF test passed. Distance: {calculated_distance} cm.")
     
     await Timer(100, units="ns")
-
-@cocotb.test()
-async def test_time_of_flight_timeout(dut):
-    """Test for Time of Flight module - No echo received"""
-    # Clock generation
-    await cocotb.start( generate_clock( dut.clk_in ) ) #launches clock
-    
-    # Reset the design
-    await Timer(100, units="ns")
-    dut.rst_in.value = 1
-    await Timer(10, units="ns")
-    dut.rst_in.value = 0
-    await Timer(10, units="ns")
-    # Start the ToF measurement
-    dut.trigger_in.value = 1
-    await RisingEdge(dut.clk_in)
-    dut.trigger_in.value = 0
-
-    # Wait longer than any expected echo
-    # timeout_ns = 5e6  # Simulate a long enough delay for timeout (e.g., 5 ms)
-    # await Timer(timeout_ns, units="ns")
-    # Wait for processing
-    
-    # doesnt check proper timeout after time period
-    await RisingEdge(dut.valid_out)
-    
-    assert dut.valid_out.value == 1, "Valid output should be asserted"
-
-    # Check if no valid output was produced (assuming module indicates this)
-    assert ((dut.object_detected.value) == 0), "Valid output should not be asserted due to timeout"
-
-    cocotb.log.info(f"Timeout test passed. No echo detected as expected.")
 
 def runner():
     """Simulate the time_of_flight module using the Python runner."""
