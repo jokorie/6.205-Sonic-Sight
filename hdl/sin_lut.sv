@@ -11,7 +11,7 @@ module sin_lut #(
     // Sine LUT array
     logic [SIN_WIDTH-1:0] cos_table [0:180]; // enough entries for 
 
-    // Precomputed sine values (16-bit fixed-point, scaled to [-32768, 32767])
+    // Precomputed sine values (16-bit fixed-point, scaled to [-65536, 65535])
     initial begin
         cos_table[0] = 65535;       // cos(0.0°)
         cos_table[1] = 65525;       // cos(1.0°)
