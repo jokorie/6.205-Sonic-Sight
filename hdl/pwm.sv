@@ -1,7 +1,6 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-// 50% duty cycle PWM generator
 module pwm #(
     parameter PERIOD_IN_CLOCK_CYCLES = 2500, // 40 kHz period with 100 MHz clock
     parameter DUTY_CYCLE_ON = 1250
