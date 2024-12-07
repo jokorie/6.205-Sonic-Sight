@@ -16,10 +16,10 @@ module evt_counter #(
 
     if (rst_in) begin
       count_out <= default_offset;
-    end else if (count_out == (MAX_COUNT - 1)) begin
-      count_out <= 0;
-    end else begin
-      if (evt_in) begin 
+    end else if (evt_in) begin
+      if (count_out == (MAX_COUNT - 1)) begin
+        count_out <= 0;
+      end else begin
         count_out <= count_out + 1;
       end
     end
