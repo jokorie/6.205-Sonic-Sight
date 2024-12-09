@@ -7,7 +7,7 @@ from cocotb.triggers import Timer
 from cocotb.runner import get_runner
 
 TOLERANCE = 10
-SCALE = 65535
+SCALE = 65536
 
 @cocotb.test()
 async def test_sin_lut_basic(dut):

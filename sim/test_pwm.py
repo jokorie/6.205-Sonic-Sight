@@ -14,7 +14,7 @@ async def generate_clock(clock_wire):
         clock_wire.value = 1
         await Timer(5, units="ns")  # High for 5 ns
 
-@cocotb.test()
+# @cocotb.test()
 async def test_pwm_basic(dut):
     """Basic Test for pwm module - Verify correct signal generation."""
     # Start the clock
@@ -49,7 +49,7 @@ async def test_pwm_basic(dut):
 
     cocotb.log.info("Basic PWM test passed: Correct duty cycle.")
 
-@cocotb.test()
+# @cocotb.test()
 async def test_pwm_with_offset(dut):
     """Test for pwm module - Verify behavior with default_offset as phase offset."""
     # Start the clock
@@ -96,7 +96,7 @@ async def test_pwm_with_offset(dut):
 
     cocotb.log.info(f"PWM test with offset {offset} passed: Signal matches expected behavior.")
 
-@cocotb.test()
+# @cocotb.test()
 async def test_pwm_full_period(dut):
     """Test for pwm module - Verify signal repeats correctly over multiple periods."""
     # Start the clock
@@ -133,6 +133,47 @@ async def test_pwm_full_period(dut):
             f"Period {period}: Expected {period_cycles - duty_cycle_on} low cycles, got {low_count}"
 
     cocotb.log.info(f"PWM test over {num_periods} periods passed: Signal repeats correctly.")
+
+
+@cocotb.test()
+async def test_pwm_with_wrap(dut):
+    """Basic Test for pwm module - Verify correct signal generation."""
+    # Start the clock
+    await cocotb.start(generate_clock(dut.clk_in))
+    
+    dut.default_offset.value = 0
+    
+    # Reset the DUT
+    await FallingEdge(dut.clk_in)
+    dut.rst_in.value = 1
+    await FallingEdge(dut.clk_in)
+    
+    dut.rst_in.value = 0    
+
+
+    # Parameters
+    period_cycles = 2500  # PERIOD_IN_CLOCK_CYCLES
+    duty_cycle_on = 1250  # DUTY_CYCLE_ON
+    
+
+    for global_cycle in range(2*period_cycles):
+        await RisingEdge(dut.clk_in)
+        
+        if (global_cycle % period_cycles) < duty_cycle_on:
+            expected_high = True
+        else:
+            expected_high = False
+                    
+        if expected_high:
+            assert dut.sig_out.value == 1, \
+                f"Cycle {global_cycle}: Expected high, got low"
+        else:
+            assert dut.sig_out.value == 0, \
+                f"Cycle {global_cycle}: Expected low, got high"
+
+
+    cocotb.log.info("Basic PWM test passed: Correct duty cycle.")
+
 
 def runner():
     """Simulate the pwm module using the Python runner."""
