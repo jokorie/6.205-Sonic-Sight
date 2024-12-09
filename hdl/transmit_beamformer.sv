@@ -33,19 +33,7 @@ module transmit_beamformer #(
     logic [DELAY_WIDTH-1:0] default_offset_2;
     logic [DELAY_WIDTH-1:0] default_offset_3;
 
-    always_comb begin
-        if (sign_bit) begin
-            default_offset_0 = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - 0) * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_1 = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - 1) * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_2 = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - 2) * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_3 = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - 3) * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-        end else begin
-            default_offset_0 = ((DELAY_PER_TRANSMITTER_COMP * 0 * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_1 = ((DELAY_PER_TRANSMITTER_COMP * 1 * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_2 = ((DELAY_PER_TRANSMITTER_COMP * 2 * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-            default_offset_3 = ((DELAY_PER_TRANSMITTER_COMP * 3 * sin_theta) >> (SIN_WIDTH-1)) % 2500;
-        end
-    end
+    // Transmitter idx grows increasing from l to r
 
     // Generate PWM instances for each transmitter
     genvar i;
@@ -54,13 +42,13 @@ module transmit_beamformer #(
             // Calculate delay based on sine value
             // if want to propogate to left vs right. the ordering of which transmitter goes first toggles
             always_comb begin
-            // Calculate delay based on sine value and sign_bit
-            if (sign_bit) begin
-                default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - i) * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // multiplying by 59 dividing by 60. maybe increase the bit width of sin_theta and incrase vals by 1
-            end else begin
-                default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * i * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // potentially dangerous. shouldnt be to many operations because a and b are relatively closde
+                // Calculate delay based on sine value and sign_bit
+                if (sign_bit) begin // if propogating angle to left. trigger rightmost transmitter first
+                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - i - 1) * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // multiplying by 59 dividing by 60. maybe increase the bit width of sin_theta and incrase vals by 1
+                end else begin // if propogating angle to right. trigger left most transmitter first
+                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * i * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // potentially dangerous. shouldnt be to many operations because a and b are relatively closde
+                end
             end
-        end
             // Instantiate PWM module
             // Need to actually wiggle the wave high low at 40 khz freq
             pwm #(
