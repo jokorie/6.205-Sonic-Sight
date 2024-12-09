@@ -12,7 +12,7 @@ module top_level (
   localparam BURST_DURATION = 524288; // 2^19 in clock cycles   
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
   localparam SIN_WIDTH = 16;               // Bit width for sine values
-  localparam ANGLE_WIDTH = 7;              // Bit width for beam angle input
+  localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSDUCERS = 4;
   localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
   localparam ADC_DATA_WIDTH = 16;
@@ -127,12 +127,13 @@ module top_level (
     .adc_in(adc_in),
     .sin_theta(sin_theta),
     .sign_bit(sig_bit),
+    .data_valid_in(spi_read_data_valid),
     .aggregated_waveform(aggregated_waveform)
   );
 
 
   // Echo Detection Signal
-  logic echo_detected;
+  logic echo_detected; // maybe this should stay high
   assign echo_detected = (aggregated_waveform > ECHO_THRESHOLD);
 
   
