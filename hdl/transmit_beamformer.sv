@@ -12,7 +12,7 @@ module transmit_beamformer #(
 )(
     input  logic clk_in,                               // System clock
     input  logic rst_in,                            // Active-low reset signal
-    input  logic [SIN_WIDTH-1:0] sin_theta, // Sine value for beam_angle
+    input  logic [SIN_WIDTH-1:0] sin_value, // Sine value for beam_angle
     input  logic sign_bit,
     output logic [NUM_TRANSMITTERS-1:0] tx_out       // Output signals for transmitters
 );
@@ -44,9 +44,9 @@ module transmit_beamformer #(
             always_comb begin
                 // Calculate delay based on sine value and sign_bit
                 if (sign_bit) begin // if propogating angle to left. trigger rightmost transmitter first
-                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - i - 1) * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // multiplying by 59 dividing by 60. maybe increase the bit width of sin_theta and incrase vals by 1
+                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * (NUM_TRANSMITTERS - i - 1) * sin_value) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // multiplying by 59 dividing by 60. maybe increase the bit width of sin_value and incrase vals by 1
                 end else begin // if propogating angle to right. trigger left most transmitter first
-                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * i * sin_theta) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // potentially dangerous. shouldnt be to many operations because a and b are relatively closde
+                    default_offset[i] = ((DELAY_PER_TRANSMITTER_COMP * i * sin_value) >> (SIN_WIDTH-1)) % ULTRA_SONIC_WAVE_PERIOD_IN_CLOCK_CYCLES; // potentially dangerous. shouldnt be to many operations because a and b are relatively closde
                 end
             end
             // Instantiate PWM module

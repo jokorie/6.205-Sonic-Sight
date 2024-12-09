@@ -7,10 +7,10 @@ from cocotb.triggers import Timer, RisingEdge, FallingEdge
 from cocotb.utils import get_sim_time as gst
 from cocotb.runner import get_runner
 
-def calculate_expected_offset(tx_idx, sin_theta, sign_bit, period_cycles):
+def calculate_expected_offset(tx_idx, sin_value, sign_bit, period_cycles):
     """Calculate the expected offset for a transmitter."""
     DELAY_PER_TRANSMITTER_COMP = (9 * 100_000_000) // 343_000  # Example calculation
-    base_offset = (DELAY_PER_TRANSMITTER_COMP * tx_idx * sin_theta) >> 15  # SIN_WIDTH = 16
+    base_offset = (DELAY_PER_TRANSMITTER_COMP * tx_idx * sin_value) >> 15  # SIN_WIDTH = 16
     if sign_bit:
         base_offset = period_cycles - base_offset
     return base_offset % period_cycles
@@ -31,7 +31,7 @@ async def test_transmit_basic(dut):
     # Start the clock
     await cocotb.start(generate_clock(dut.clk_in))
     
-    dut.sin_theta.value = 0
+    dut.sin_value.value = 0
     dut.sign_bit = 0
 
     # Reset the DUT
@@ -73,7 +73,7 @@ async def test_transmit_basic_full_beamforming(dut):
     # Start the clock
     await cocotb.start(generate_clock(dut.clk_in))
     
-    dut.sin_theta.value = 65536
+    dut.sin_value.value = 65536
     dut.sign_bit.value = 0
 
     # Reset the DUT
@@ -131,7 +131,7 @@ async def test_transmit_basic_partial_beamforming(dut):
     # Start the clock
     await cocotb.start(generate_clock(dut.clk_in))
     
-    dut.sin_theta.value = 59395 # 65 degrees off boresight
+    dut.sin_value.value = 59395 # 65 degrees off boresight
     dut.sign_bit.value = 0
 
     # Reset the DUT
@@ -198,7 +198,7 @@ async def test_transmit_beamformer_basic(dut):
 
     # Reset the DUT
     dut.rst_in.value = 1
-    dut.sin_theta.value = 65535  # Set sin_theta to max positive
+    dut.sin_value.value = 65535  # Set sin_value to max positive
     dut.sign_bit.value = 0  # Test rightward propagation
     await Timer(20, units="ns")
     dut.rst_in.value = 0
@@ -252,7 +252,7 @@ async def test_transmit_beamformer_with_sign_change(dut):
     await Timer(20, units="ns")
 
     # Test leftward propagation
-    dut.sin_theta.value = 32767  # Max sine value
+    dut.sin_value.value = 32767  # Max sine value
     dut.sign_bit.value = 1  # Test leftward propagation
     await Timer(1000, units="ns")  # Allow signals to propagate
 
