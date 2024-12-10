@@ -14,21 +14,23 @@ module fft_wrapper #(
 
     // Internal signals
     logic                   fft_sync;            // FFT sync signal
-    logic [43:0]     fft_result;          // Packed FFT output
+    logic [43:0]            fft_result;          // Packed FFT output
     logic                   fft_active;           // FFT output valid
     logic signed [21:0]     fft_real, fft_imag;  // Unpacked real and imaginary parts
-    logic [10:0]            current_index;       // Current FFT bin index
+    logic [10:0]            in_stream_idx;       // Current FFT bin index
+    logic [10:0]            out_stream_idx;       // Current FFT bin index
     logic [10:0]            max_index;           // Index of the peak bin
     logic [43:0]            magnitude_squared;   // Magnitude squared
     logic [43:0]            max_magnitude;       // Maximum magnitude squared
 
     // Instantiate the FFT module
     // once result ready should stream out cycle after cycle
-    typedef enum {NOT_STARTED, STARTED, DONE} state_t;
+    typedef enum {NOT_STARTED, STREAMING_IN, STREAMING_OUT, DONE} state_t;
     state_t state;
 
+    logic done_streaming_in;
     logic true_ce;
-    assign true_ce = (state == NOT_STARTED)? ce: (state == STARTED)? 1: 0;
+    assign true_ce = ce || done_streaming_in;
 
 
     // stream in at sampling rate
@@ -62,30 +64,49 @@ module fft_wrapper #(
         if (rst_in) begin
             max_magnitude <= 0;
             max_index <= 0;
-            current_index <= 0;
+            in_stream_idx <= 0;
+            out_stream_idx <= 0;
             peak_valid <= 0;
+            done_streaming_in <= 0;
             state <= NOT_STARTED;
-        end else if (state == NOT_STARTED) begin
-            if (fft_sync) begin // ok to neglect calculations for one cycle
-                current_index <= current_index + 1;
-                state <= STARTED;
+        end 
+        else if (state == NOT_STARTED) begin
+            if (true_ce) begin // ok to neglect calculations for one cycle
+                in_stream_idx <= in_stream_idx + 1;
+                state <= STREAMING_IN;
             end
-        end else if (state == STARTED) begin
+        end 
+        else if (state == STREAMING_IN) begin
+            if (true_ce) begin // true ce
+                if (in_stream_idx == 2047) begin
+                    done_streaming_in <= 1; // set effective ce to high
+                end else begin
+                    in_stream_idx <= in_stream_idx + 1;
+                end
+
+                if (fft_sync) begin
+                    out_stream_idx <= out_stream_idx + 1;
+                    state <= STREAMING_OUT;
+                end
+            end
+        end
+        else if (state == STREAMING_OUT) begin
             if (
                 magnitude_squared > max_magnitude &&
-                current_index > 40 && 
-                current_index < 120
+                out_stream_idx > 40 && 
+                out_stream_idx < 120
             ) begin // filters the search within reasonable range
                 max_magnitude <= magnitude_squared;
-                max_index <= current_index;
+                max_index <= out_stream_idx;
             end
             // Increment current index
-            current_index <= current_index + 1; // W overflow
-            if (current_index == 2047) begin
+            out_stream_idx <= out_stream_idx + 1; // W overflow
+            if (out_stream_idx == 2047) begin
                 peak_valid <= 1;
                 state <= DONE;
             end
-        end else begin // state == DONE
+        end 
+        else begin // state == DONE
             peak_valid <= 0;
         end    
     end

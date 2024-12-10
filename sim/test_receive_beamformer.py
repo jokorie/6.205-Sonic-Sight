@@ -10,9 +10,6 @@ from cocotb.runner import get_runner
 NUM_RECEIVERS = 4
 TOLERANCE = 1000
 
-def in_bounds(idx, n):
-    return idx < n
-
 async def generate_clock(clock_wire):
     """Generates a clock signal on the given wire."""
     while True:
@@ -21,8 +18,6 @@ async def generate_clock(clock_wire):
         clock_wire.value = 1
         await Timer(5, units="ns")  # High for 5 ns
 
-
-import math
 
 def generate_adc_waveforms(num_samples=10000, angle=0, amplitude=32767, frequency=40000, sampling_rate=1000000):
     """
