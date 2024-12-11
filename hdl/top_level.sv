@@ -142,7 +142,8 @@ module top_level (
       .chip_sel_out(cs1));   // CS on adc
 
   // Receive Beamforming Signals
-  logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 4 ADCs
+  logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 2 ADCs
+
   // ------------------- HARDCODED ----------------------------
   assign adc_in[0] = spi_read_data_0;
   assign adc_in[1] = spi_read_data_1;
