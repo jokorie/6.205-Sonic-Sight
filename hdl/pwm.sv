@@ -13,7 +13,6 @@ module pwm #(
 
     // Counter to track clock cycles
     logic [$clog2(PERIOD_IN_CLOCK_CYCLES)-1:0] count;
-    logic sig_buf;
     // Counter instance
     evt_counter #(
         .MAX_COUNT(PERIOD_IN_CLOCK_CYCLES)
@@ -25,12 +24,9 @@ module pwm #(
         .default_offset(default_offset),
         .count_out(count)
     );
-    always_ff @(posedge clk_in) begin
-        if(rst_in) sig_buf <= 0;
-        else sig_buf <= (count < DUTY_CYCLE_ON);
-    end
+
     // PWM signal generation: Output high for half the period
-    assign sig_out = sig_buf; // High during the first half of the period
+    assign sig_out = (count < DUTY_CYCLE_ON); // High during the first half of the period
 
 endmodule
 

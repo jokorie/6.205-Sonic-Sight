@@ -45,19 +45,16 @@ module top_level (
       .default_offset(0),
       .sig_out(active_pulse)
   );
+
   always_ff @(posedge clk_100mhz) begin
     if (sys_rst) begin
-      burst_start <= 1;
       prev_active_pulse <= 0;
     end else begin
-      if (active_pulse && ~prev_active_pulse) begin
-        burst_start <= 1;
-      end else begin
-        burst_start <= 0;
-      end
       prev_active_pulse <= active_pulse;
     end
   end
+
+  assign burst_start == active_pulse && !prev_active_pulse;
 
 
 
