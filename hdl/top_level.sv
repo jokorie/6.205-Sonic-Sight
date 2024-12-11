@@ -23,7 +23,7 @@ module top_level (
   localparam BURST_DURATION = 524288;      // 2^19 in clock cycles   
   // localparam BURST_DURATION = PERIOD_DURATION / 2;
   // localparam ECHO_THRESHOLD = 5000;        // Example threshold for detection
-  localparam ECHO_THRESHOLD = 500;        // Example threshold for detection
+  localparam ECHO_THRESHOLD = 200;        // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSMITTERS = 2;
@@ -81,38 +81,38 @@ module top_level (
   logic [2:0] tmp_global_period_counter;
 
   // Move from [-30, 30]. Step 10 degrees
-  // assign beam_angle = 8'sd0;
+  assign beam_angle = 8'sd0;
 
   // lowks now it too slow to scan entire region. 
-  always_ff @(posedge clk_100mhz) begin
-    if (sys_rst) begin
-      tmp_global_period_counter <= 0;
-      beam_angle <= 8'sb0;         // Reset the angle to 0
-      angle_going_right <= 1;      // Start moving in the positive direction
-    end
-    else begin
-      if (burst_start) begin
-        tmp_global_period_counter <= tmp_global_period_counter + 1; // overflow intended
-        if (tmp_global_period_counter == 0) begin
-        if (angle_going_right) begin
-          if (beam_angle == 8'sd30) begin
-            beam_angle <= beam_angle - 8'sd1;        // Step back to 20 to reverse smoothly
-            angle_going_right <= 0;      // Reverse direction
-          end else begin
-            beam_angle <= beam_angle + 8'sd1; // Increment angle
-          end
-        end else begin // Moving left
-          if (beam_angle == -8'sd30) begin // Check for -30 limit
-            beam_angle <= beam_angle + 8'sd1;       // Step forward to -20 to reverse smoothly
-            angle_going_right <= 1;      // Reverse direction
-          end else begin
-            beam_angle <= beam_angle - 8'sd1; // Decrement angle
-          end
-        end
-      end
-      end 
-    end
-  end
+  // always_ff @(posedge clk_100mhz) begin
+  //   if (sys_rst) begin
+  //     tmp_global_period_counter <= 0;
+  //     beam_angle <= 8'sb0;         // Reset the angle to 0
+  //     angle_going_right <= 1;      // Start moving in the positive direction
+  //   end
+  //   else begin
+  //     if (burst_start) begin
+  //       tmp_global_period_counter <= tmp_global_period_counter + 1; // overflow intended
+  //       if (tmp_global_period_counter == 0) begin
+  //       if (angle_going_right) begin
+  //         if (beam_angle == 8'sd30) begin
+  //           beam_angle <= beam_angle - 8'sd1;        // Step back to 20 to reverse smoothly
+  //           angle_going_right <= 0;      // Reverse direction
+  //         end else begin
+  //           beam_angle <= beam_angle + 8'sd1; // Increment angle
+  //         end
+  //       end else begin // Moving left
+  //         if (beam_angle == -8'sd30) begin // Check for -30 limit
+  //           beam_angle <= beam_angle + 8'sd1;       // Step forward to -20 to reverse smoothly
+  //           angle_going_right <= 1;      // Reverse direction
+  //         end else begin
+  //           beam_angle <= beam_angle - 8'sd1; // Decrement angle
+  //         end
+  //       end
+  //     end
+  //     end 
+  //   end
+  // end
 
 
   logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle. with respect to boresight
@@ -231,7 +231,7 @@ module top_level (
     end
     else begin
       buffered_aggregated_waveform <= aggregated_waveform;
-      if (aggregated_waveform > ECHO_THRESHOLD) begin
+      if (aggregated_waveform > ECHO_THRESHOLD && !active_pulse) begin
         echo_detected <= 1;
       end
     end
