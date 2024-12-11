@@ -246,15 +246,20 @@ module top_level (
   end
 
   logic [6:0] ss_c;
+
+  logic temp_ready = 1;
+  logic [15:0] temp_dist = 100;
+  logic [15:0] temp_velocity = 100;
+  logic temp_towards = 1;
   
  seven_segment_controller ssc
   (
     .clk_in(clk_100mhz),                   // System clock input
-    .rst_in(sys_rst || burst_start),                   // Active-high reset signal
-    .trigger_in(stored_tof_ready && stored_velocity_ready),               // Trigger to move from LOADING to READY state
-    .distance_in(stored_tof_range_out),       // Distance in cm
-    .velocity_in(stored_velocity_result),       // Velocity in m/s (absolute value)
-    .towards_observer(stored_towards_observer),         // Direction of velocity: 1 for "-", 0 for "+"
+    .rst_in(0),                   // Active-high reset signal
+    .trigger_in(temp_ready),               // Trigger to move from LOADING to READY state
+    .distance_in(temp_dist),       // Distance in cm
+    .velocity_in(temp_velocity),       // Velocity in m/s (absolute value)
+    .towards_observer(temp_towards),         // Direction of velocity: 1 for "-", 0 for "+"
     .angle_in(),           // Angle value in degrees (0-360)
     .cat_out(ss_c),          // Segment control output for a-g segments
     .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
