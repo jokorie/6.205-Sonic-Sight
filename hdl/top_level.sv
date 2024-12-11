@@ -62,8 +62,6 @@ module top_level (
 
   assign burst_start = active_pulse && !prev_active_pulse;
 
-
-
   logic [$clog2(PERIOD_DURATION)-1:0] time_since_emission;
 
   evt_counter  #(
@@ -71,15 +69,38 @@ module top_level (
   ) time_counter
   (
       .clk_in(clk_100mhz),
-      .rst_in(sys_rst || burst_start), // conditions to reset burst
+      .rst_in(burst_start), // conditions to reset burst
       .evt_in(1'b1),
       .count_out(time_since_emission)
   );
 
 
-  logic signed [ANGLE_WIDTH-1:0] beam_angle;
-  assign beam_angle = 8'sb0; // static beam forming perpendicular to board, in line with boresight
+logic signed [ANGLE_WIDTH-1:0] beam_angle;
+logic angle_going_right;
+
   // Move from [-30, 30]. Step 10 degrees
+always_ff @(posedge clk_100mhz) begin
+    if (burst_start) begin
+        beam_angle <= 8'sb0;         // Reset the angle to 0
+        angle_going_right <= 1;      // Start moving in the positive direction
+    end else begin
+        if (angle_going_right) begin
+            if (beam_angle == 8'sd30) begin
+                beam_angle <= 8'sd20;        // Step back to 20 to reverse smoothly
+                angle_going_right <= 0;      // Reverse direction
+            end else begin
+                beam_angle <= beam_angle + 8'sd10; // Increment angle
+            end
+        end else begin // Moving left
+            if (beam_angle == -8'sd30) begin // Check for -30 limit
+                beam_angle <= -8'sd20;       // Step forward to -20 to reverse smoothly
+                angle_going_right <= 1;      // Reverse direction
+            end else begin
+                beam_angle <= beam_angle - 8'sd10; // Decrement angle
+            end
+        end
+    end
+end
 
 
   logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle
@@ -99,7 +120,7 @@ module top_level (
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start), // conditions to stop transmitting
+    .rst_in(burst_start), // conditions to stop transmitting
     .sin_value(sin_value),
     .sign_bit(sign_bit),
     .tx_out(tx_out)
@@ -116,7 +137,7 @@ module top_level (
     ) counter_1MHz_trigger 
     (
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start),
+    .rst_in(burst_start),
     .evt_in(!active_pulse),
     .count_out(spi_trigger_count)
   );
@@ -134,7 +155,7 @@ module top_level (
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
   ) spi_controller_0
   (   .clk_in(clk_100mhz),
-      .rst_in(sys_rst || burst_start),
+      .rst_in(burst_start),
       .trigger_in(spi_trigger),
       .data_out(spi_read_data_0),
       .data_valid_out(spi_read_data_valid_0),
@@ -147,7 +168,7 @@ module top_level (
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
   ) spi_controller_1
   (   .clk_in(clk_100mhz),
-      .rst_in(sys_rst || burst_start),
+      .rst_in(burst_start),
       .trigger_in(spi_trigger),
       .data_out(spi_read_data_1),
       .data_valid_out(spi_read_data_valid_1),
@@ -168,7 +189,7 @@ module top_level (
   // Receive Beamforming Instance
   receive_beamformer rx_beamform_inst (
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start),
+    .rst_in(burst_start),
     .adc_in(adc_in),
     .sin_theta(sin_value),
     .sign_bit(sign_bit),
@@ -182,7 +203,7 @@ module top_level (
   logic [15:0] buffered_aggregated_waveform;
 
   always_ff @(posedge clk_100mhz) begin
-    if (sys_rst || burst_start) begin
+    if (burst_start) begin
       echo_detected <= 0;
       buffered_aggregated_waveform <= 0;
     end
@@ -202,7 +223,7 @@ module top_level (
     .time_since_emission(time_since_emission),
     .echo_detected(echo_detected),
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start),
+    .rst_in(burst_start),
     .range_out(range_out),
     .valid_out(tof_valid_out)
   );
@@ -213,7 +234,7 @@ module top_level (
 
   velocity velocity_calculator_inst (
     .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start),
+    .rst_in(burst_start),
     .receiver_data(buffered_aggregated_waveform),
     .doppler_ready(ready_velocity),
     .velocity_result(velocity_result),
@@ -256,7 +277,7 @@ module top_level (
  seven_segment_controller ssc
   (
     .clk_in(clk_100mhz),                   // System clock input
-    .rst_in(sys_rst || burst_start),                   // Active-high reset signal
+    .rst_in(burst_start),                   // Active-high reset signal
     .trigger_in(temp_ready),               // Trigger to move from LOADING to READY state
     .distance_in(temp_dist),       // Distance in cm
     .velocity_in(temp_velocity),       // Velocity in m/s (absolute value)
