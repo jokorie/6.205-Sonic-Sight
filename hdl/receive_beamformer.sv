@@ -27,11 +27,8 @@ module receive_beamformer #(
     localparam SAMPLE_DELAY_PER_RECEIVER_COMP = ELEMENT_SPACING * SAMPLING_RATE / SPEED_OF_SOUND;
     localparam MAX_DELAY = SAMPLE_DELAY_PER_RECEIVER_COMP * (NUM_RECEIVERS - 1);
 
-    // -------------------------- HARD CODED ------------------------------------------------
-    localparam BUFFER_SIZE = 8; // closest larger power of 2 of (MAX_DELAY)
-    // -------------------------- HARD CODED ------------------------------------------------
-
-    localparam INDEX_WIDTH = $clog2(BUFFER_SIZE);
+    localparam INDEX_WIDTH = $clog2(MAX_DELAY);
+    localparam BUFFER_SIZE = 1 << INDEX_WIDTH;
 
 
     // Internal Signals
@@ -62,7 +59,7 @@ module receive_beamformer #(
         combined_waveform = (
                 wave_buffer[0][curr_read_index[0]] + 
                 wave_buffer[1][curr_read_index[1]]
-            ) >> 1;
+            ) >> 1; // >> 1 is division by 2 because of 2 receivers
         // ------------------- HARDCODED ----------------------------
         aggregated_waveform = combined_waveform;
     end
