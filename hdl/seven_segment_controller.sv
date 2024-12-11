@@ -68,14 +68,17 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
   assign cat_out = ~led_out; //<--note this inversion is needed
   assign an_out = ~segment_state; //note this inversion is needed
  
-  always_ff @(posedge clk_in)begin
+  always_ff @(posedge clk_in) begin
     if (rst_in)begin
-      segment_state <= 8'b0000_0001;
+      segment_state <= 8'b1111_1111; // DEFAULT STATE - DASH
       segment_counter <= 32'b0;
       state <= LOADING;
     end else begin
       if (state == LOADING) begin
-        if (trigger_in) state <= READY;
+        if (trigger_in) begin
+          state <= READY;
+          segment_state <= 8'b0000_0001;
+        end
       end 
       if (state == READY) begin
         if (segment_counter == COUNT_PERIOD - 1) begin
