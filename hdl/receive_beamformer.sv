@@ -4,7 +4,6 @@ module receive_beamformer #(
     parameter integer PERIOD_DURATION = 16777216,         // TODO: Default
     parameter integer BURST_DURATION = 524288,          // TODO: Default
     parameter integer NUM_RECEIVERS = 2,          // Number of transmitters
-    parameter integer BUFFER_SIZE = 80,        // Size of the circular buffer (sufficient for delays with margin). Thought. store the buffer size with perfect size such that wraps nicely
     parameter integer ELEMENT_SPACING = 9,          // Spacing between transmitters in mm
     parameter integer SPEED_OF_SOUND = 343000,      // Speed of sound in mm/s
     parameter integer TARGET_FREQ = 40000,          // Target frequency in Hz
@@ -26,6 +25,12 @@ module receive_beamformer #(
 
     localparam MAX_COUNT = CLK_FREQ / SAMPLING_RATE;
     localparam SAMPLE_DELAY_PER_RECEIVER_COMP = ELEMENT_SPACING * SAMPLING_RATE / SPEED_OF_SOUND;
+    localparam MAX_DELAY = SAMPLE_DELAY_PER_RECEIVER_COMP * (NUM_RECEIVERS - 1);
+
+    // -------------------------- HARD CODED ------------------------------------------------
+    localparam BUFFER_SIZE = 8; // closest larger power of 2 of (MAX_DELAY)
+    // -------------------------- HARD CODED ------------------------------------------------
+
     localparam INDEX_WIDTH = $clog2(BUFFER_SIZE);
 
 
@@ -39,9 +44,9 @@ module receive_beamformer #(
     always_comb begin
         for (int i = 0; i < NUM_RECEIVERS; i++) begin
             if (sign_bit) begin // if receiving wave from left, delay left most receiver most
-                delay_samples[i] = ((SAMPLE_DELAY_PER_RECEIVER_COMP * (NUM_RECEIVERS - i - 1) * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
+                delay_samples[i] = ((SAMPLE_DELAY_PER_RECEIVER_COMP * (NUM_RECEIVERS - i - 1) * sin_theta) >> (SIN_WIDTH - 1)) & (BUFFER_SIZE - 1);
             end else begin // if receiving wave from right, delay right most receiver most
-                delay_samples[i] = ((SAMPLE_DELAY_PER_RECEIVER_COMP * i * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
+                delay_samples[i] = ((SAMPLE_DELAY_PER_RECEIVER_COMP * i * sin_theta) >> (SIN_WIDTH - 1)) & (BUFFER_SIZE - 1);
             end
 
 
