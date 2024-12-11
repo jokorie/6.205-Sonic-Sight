@@ -41,6 +41,8 @@ module top_level (
   logic prev_active_pulse;
   logic active_pulse;
   logic burst_start;
+
+  logic [2:0] tmp_global_period_counter;
   
   pwm #(
       .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
@@ -75,33 +77,40 @@ module top_level (
   );
 
 
-logic signed [ANGLE_WIDTH-1:0] beam_angle;
-logic angle_going_right;
+  logic signed [ANGLE_WIDTH-1:0] beam_angle;
+  logic angle_going_right;
 
-// Move from [-30, 30]. Step 10 degrees
-assign beam_angle = 8'sd0;
-// always_ff @(posedge clk_100mhz) begin
-//   if (burst_start) begin
-//     beam_angle <= 8'sb0;         // Reset the angle to 0
-//     angle_going_right <= 1;      // Start moving in the positive direction
-//   end else begin
-//     if (angle_going_right) begin
-//       if (beam_angle == 8'sd30) begin
-//         beam_angle <= beam_angle - 8'sd1;        // Step back to 20 to reverse smoothly
-//         angle_going_right <= 0;      // Reverse direction
-//       end else begin
-//         beam_angle <= beam_angle + 8'sd1; // Increment angle
-//       end
-//     end else begin // Moving left
-//       if (beam_angle == -8'sd30) begin // Check for -30 limit
-//         beam_angle <= beam_angle + 8'sd1;       // Step forward to -20 to reverse smoothly
-//         angle_going_right <= 1;      // Reverse direction
-//       end else begin
-//         beam_angle <= beam_angle - 8'sd1; // Decrement angle
-//       end
-//     end
-//   end
-// end
+  // Move from [-30, 30]. Step 10 degrees
+  // assign beam_angle = 8'sd0;
+  always_ff @(posedge clk_100mhz) begin
+    if (sys_rst) begin
+      tmp_global_period_counter <= 0;
+      beam_angle <= 8'sb0;         // Reset the angle to 0
+      angle_going_right <= 1;      // Start moving in the positive direction
+    end
+    else begin
+      if (burst_start) begin
+        tmp_global_period_counter <= tmp_global_period_counter + 1; // overflow intended
+        if (tmp_global_period_counter == 0) begin
+        if (angle_going_right) begin
+          if (beam_angle == 8'sd30) begin
+            beam_angle <= beam_angle - 8'sd1;        // Step back to 20 to reverse smoothly
+            angle_going_right <= 0;      // Reverse direction
+          end else begin
+            beam_angle <= beam_angle + 8'sd1; // Increment angle
+          end
+        end else begin // Moving left
+          if (beam_angle == -8'sd30) begin // Check for -30 limit
+            beam_angle <= beam_angle + 8'sd1;       // Step forward to -20 to reverse smoothly
+            angle_going_right <= 1;      // Reverse direction
+          end else begin
+            beam_angle <= beam_angle - 8'sd1; // Decrement angle
+          end
+        end
+      end
+      end 
+    end
+  end
 
 
   logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle
