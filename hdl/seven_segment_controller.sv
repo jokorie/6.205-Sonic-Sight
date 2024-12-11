@@ -3,7 +3,8 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
   (
     input wire clk_in,                   // System clock input
     input wire rst_in,                   // Active-high reset signal
-    input wire trigger_in,               // Trigger to move from LOADING to READY state
+    input wire tof_trigger_in,
+    input wire velocity_trigger_in,               // Trigger to move from LOADING to READY state
     input wire [15:0] distance_in,       // Distance in cm
     input wire [15:0] velocity_in,       // Velocity in m/s (absolute value)
     input wire towards_observer,         // Direction of velocity: 1 for "-", 0 for "+"
@@ -55,11 +56,11 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
       8'b0000_0001: sel_values = lower_angle_bits;
       8'b0000_0010: sel_values = upper_angle_bits;
       8'b0000_0100: sel_values = empty_sel_value; // should always be set to a point
-      8'b0000_1000: sel_values = lower_dist_bits;
-      8'b0001_0000: sel_values = upper_dist_bits;
+      8'b0000_1000: sel_values = (tof_trigger_in)? lower_dist_bits: empty_sel_value;
+      8'b0001_0000: sel_values = (tof_trigger_in)? upper_dist_bits: empty_sel_value;
       8'b0010_0000: sel_values = empty_sel_value;
-      8'b0100_0000: sel_values = velocity_in; // type mismatch
-      8'b1000_0000: sel_values = (towards_observer)? empty_sel_value: dash_sel_value;
+      8'b0100_0000: sel_values = (velocity_trigger_in)? velocity_in: empty_sel_value; // type mismatch
+      8'b1000_0000: sel_values = (velocity_trigger_in)? ((towards_observer)? empty_sel_value: dash_sel_value): empty_sel_value;
       default: sel_values = dash_sel_value;
     endcase
   end
@@ -75,7 +76,7 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
       state <= LOADING;
     end else begin
       if (state == LOADING) begin
-        if (trigger_in) begin
+        if (tof_trigger_in || velocity_trigger_in) begin
           state <= READY;
           segment_state <= 8'b0000_0001;
         end

@@ -21,8 +21,9 @@ module top_level (
 
   localparam PERIOD_DURATION = 16777216;   // 2^24 in clock cycles a little under 2 tenths of seconds
   localparam BURST_DURATION = 524288;      // 2^19 in clock cycles   
+  // localparam BURST_DURATION = PERIOD_DURATION / 2;
   // localparam ECHO_THRESHOLD = 5000;        // Example threshold for detection
-  localparam ECHO_THRESHOLD = 0;        // Example threshold for detection
+  localparam ECHO_THRESHOLD = 500;        // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSMITTERS = 2;
@@ -41,17 +42,15 @@ module top_level (
   logic prev_active_pulse;
   logic active_pulse;
   logic burst_start;
-
-  logic [2:0] tmp_global_period_counter;
   
   pwm #(
-      .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
-      .DUTY_CYCLE_ON(BURST_DURATION)
+    .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
+    .DUTY_CYCLE_ON(BURST_DURATION)
   ) pulse_cooldown (
-      .clk_in(clk_100mhz),
-      .rst_in(sys_rst),
-      .default_offset(0),
-      .sig_out(active_pulse)
+    .clk_in(clk_100mhz),
+    .rst_in(sys_rst),
+    .default_offset(0),
+    .sig_out(active_pulse)
   );
 
   always_ff @(posedge clk_100mhz) begin
@@ -79,9 +78,12 @@ module top_level (
 
   logic signed [ANGLE_WIDTH-1:0] beam_angle;
   logic angle_going_right;
+  logic [2:0] tmp_global_period_counter;
 
   // Move from [-30, 30]. Step 10 degrees
   // assign beam_angle = 8'sd0;
+
+  // lowks now it too slow to scan entire region. 
   always_ff @(posedge clk_100mhz) begin
     if (sys_rst) begin
       tmp_global_period_counter <= 0;
@@ -113,7 +115,7 @@ module top_level (
   end
 
 
-  logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle
+  logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle. with respect to boresight
   logic sign_bit;
   sin_lut #(
       .SIN_WIDTH(SIN_WIDTH),
@@ -143,12 +145,14 @@ module top_level (
   logic                      spi_trigger;
 
   evt_counter  
-  #(.MAX_COUNT(CYCLES_PER_TRIGGER)
-    ) counter_1MHz_trigger 
-    (
+  #(
+    .MAX_COUNT(CYCLES_PER_TRIGGER)
+  ) counter_1MHz_trigger 
+  (
     .clk_in(clk_100mhz),
     .rst_in(burst_start),
     .evt_in(!active_pulse),
+    .default_offset(0),
     .count_out(spi_trigger_count)
   );
 
@@ -164,27 +168,35 @@ module top_level (
   #(  .DATA_WIDTH(ADC_DATA_WIDTH),
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
   ) spi_controller_0
-  (   .clk_in(clk_100mhz),
-      .rst_in(burst_start),
-      .trigger_in(spi_trigger),
-      .data_out(spi_read_data_0),
-      .data_valid_out(spi_read_data_valid_0),
-      .chip_data_in(cipo0), // sdata on adc
-      .chip_clk_out(dclk0), // sclk on adc
-      .chip_sel_out(cs0));   // CS on adc
+  (  
+    .clk_in(clk_100mhz),
+    .rst_in(burst_start),
+    .trigger_in(spi_trigger),
+    .data_in(),
+    .data_out(spi_read_data_0),
+    .data_valid_out(spi_read_data_valid_0),
+    .chip_data_out(),
+    .chip_data_in(cipo0), // sdata on adc
+    .chip_clk_out(dclk0), // sclk on adc
+    .chip_sel_out(cs0)
+  );   // CS on adc
 
   spi_con
   #(  .DATA_WIDTH(ADC_DATA_WIDTH),
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
   ) spi_controller_1
-  (   .clk_in(clk_100mhz),
-      .rst_in(burst_start),
-      .trigger_in(spi_trigger),
-      .data_out(spi_read_data_1),
-      .data_valid_out(spi_read_data_valid_1),
-      .chip_data_in(cipo1), // sdata on adc
-      .chip_clk_out(dclk1), // sclk on adc
-      .chip_sel_out(cs1));   // CS on adc
+  (   
+    .clk_in(clk_100mhz),
+    .rst_in(burst_start),
+    .trigger_in(spi_trigger),
+    .data_in(),
+    .data_out(spi_read_data_1),
+    .data_valid_out(spi_read_data_valid_1),
+    .chip_data_out(),
+    .chip_data_in(cipo1), // sdata on adc
+    .chip_clk_out(dclk1), // sclk on adc
+    .chip_sel_out(cs1)
+  );   // CS on adc
 
   // Receive Beamforming Signals
   logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 2 ADCs
@@ -288,14 +300,28 @@ module top_level (
   logic temp_towards = 0;
   // ------------------ DONT FORGET TO REMOVE ------------
   
- seven_segment_controller ssc
+//  seven_segment_controller ssc
+//   (
+//     .clk_in(clk_100mhz),                   // System clock input
+//     .rst_in(burst_start),                   // Active-high reset signal
+//     .trigger_in(temp_ready), // TODO: replace for ...(ss_trigger_in)               // Trigger to move from LOADING to READY state
+//     .distance_in(temp_dist), // TODO: replace for ...(stored_tof_range_out)       // Distance in cm
+//     .velocity_in(temp_velocity),  // TODO: replace for ...(stored_velocity_result)      // Velocity in m/s (absolute value)
+//     .towards_observer(temp_towards), // TODO: replace for ...(stored_towards_observer)        // Direction of velocity: 1 for "-", 0 for "+"
+//     .angle_in(beam_angle),           // Angle value in degrees (0-360)
+//     .cat_out(ss_c),          // Segment control output for a-g segments
+//     .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
+//   );
+
+  seven_segment_controller ssc
   (
     .clk_in(clk_100mhz),                   // System clock input
     .rst_in(burst_start),                   // Active-high reset signal
-    .trigger_in(temp_ready), // TODO: replace for ...(ss_trigger_in)               // Trigger to move from LOADING to READY state
-    .distance_in(temp_dist), // TODO: replace for ...(stored_tof_range_out)       // Distance in cm
-    .velocity_in(temp_velocity),  // TODO: replace for ...(stored_velocity_result)      // Velocity in m/s (absolute value)
-    .towards_observer(temp_towards), // TODO: replace for ...(stored_towards_observer)        // Direction of velocity: 1 for "-", 0 for "+"
+    .tof_trigger_in(stored_tof_ready),
+    .velocity_trigger_in(stored_velocity_ready), // TODO: replace for ...(ss_trigger_in)               // Trigger to move from LOADING to READY state
+    .distance_in(stored_tof_range_out), // TODO: replace for ...(stored_tof_range_out)       // Distance in cm
+    .velocity_in(stored_velocity_result),  // TODO: replace for ...(stored_velocity_result)      // Velocity in m/s (absolute value)
+    .towards_observer(stored_towards_observer), // TODO: replace for ...(stored_towards_observer)        // Direction of velocity: 1 for "-", 0 for "+"
     .angle_in(beam_angle),           // Angle value in degrees (0-360)
     .cat_out(ss_c),          // Segment control output for a-g segments
     .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
