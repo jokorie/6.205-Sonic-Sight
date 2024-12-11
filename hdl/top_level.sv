@@ -14,7 +14,9 @@ module top_level (
   output wire dclk0,
   output wire dclk1,
   output wire cs0,
-  output wire cs1
+  output wire cs1,
+  output logic [2:0]  rgb0,
+  output logic [2:0]  rgb1
 );
 
   localparam PERIOD_DURATION = 16777216;   // 2^24 in clock cycles a little under 2 tenths of seconds
@@ -27,6 +29,9 @@ module top_level (
   localparam ADC_DATA_WIDTH = 16;
   localparam ADC_DATA_CLK_PERIOD = 5;
 
+  // shut up those RGBs
+  assign rgb0 = 0;
+  assign rgb1 = 0;
 
   // System Reset
   logic sys_rst;
