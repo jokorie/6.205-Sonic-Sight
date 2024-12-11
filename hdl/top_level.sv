@@ -46,6 +46,18 @@ module top_level (
       .sig_out(active_pulse)
   );
 
+  always @(posedge clk_100mhz) begin
+    if (sys_rst) begin
+      burst_start <= 1;
+    end else begin
+      if (active_pulse && ~prev_active_pulse) begin
+        burst_start <= 1;
+      end else begin
+        burst_start <= 0;
+      end
+    end
+  end
+
   assign burst_start = active_pulse && ~prev_active_pulse;
 
   always_ff @(posedge clk_100mhz) begin
@@ -234,17 +246,23 @@ module top_level (
     end
   end
 
+  logic [6:0] ss_c;
   
-  
-  // Seven Segment Controller Instance
-  // seven_segment_controller controller (
-  //   .clk_in(clk_100mhz),
-  //   .rst_in(sys_rst || burst_start),
-  //   .trigger_in(tof_valid_out), // TODO: how do you want to handle undetected objects
-  //   .distance_in(range_out),
-  //   .cat_out(ss_c),
-  //   .an_out(ss_an)
-  // );
+ seven_segment_controller ssc
+  (
+    .clk_in(clk_100mhz),                   // System clock input
+    .rst_in(sys_rst || burst_start),                   // Active-high reset signal
+    .trigger_in(stored_tof_ready && stored_velocity_ready),               // Trigger to move from LOADING to READY state
+    .distance_in(stored_tof_range_out),       // Distance in cm
+    .velocity_in(stored_velocity_result),       // Velocity in m/s (absolute value)
+    .towards_observer(stored_towards_observer),         // Direction of velocity: 1 for "-", 0 for "+"
+    .angle_in(),           // Angle value in degrees (0-360)
+    .cat_out(ss_c),          // Segment control output for a-g segments
+    .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
+  );
+
+  assign ss0_c = ss_c;
+  assign ss1_c = ss_c;
 
 endmodule
 

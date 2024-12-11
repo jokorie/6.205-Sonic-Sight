@@ -7,10 +7,14 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
     input wire [15:0] distance_in,       // Distance in cm
     input wire [15:0] velocity_in,       // Velocity in m/s (absolute value)
     input wire towards_observer,         // Direction of velocity: 1 for "-", 0 for "+"
-    input wire [7:0] angle_in,           // Angle value in degrees (0-360)
+    input wire signed [7:0] angle_in,           // Angle value in degrees (0-360)
     output logic [6:0] cat_out,          // Segment control output for a-g segments
     output logic [7:0] an_out            // Anode control output for selecting display
   );
+
+  typedef enum {LOADING, READY} state_t;
+  state_t state;
+
 
   localparam dash_sel_value = 16;
   localparam empty_sel_value = 17;
@@ -56,6 +60,7 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
       8'b0010_0000: sel_values = empty_sel_value;
       8'b0100_0000: sel_values = velocity_in; // type mismatch
       8'b1000_0000: sel_values = (towards_observer)? empty_sel_value: dash_sel_value;
+      default: sel_values = dash_sel_value;
     endcase
   end
   
@@ -67,12 +72,18 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
     if (rst_in)begin
       segment_state <= 8'b0000_0001;
       segment_counter <= 32'b0;
+      state <= LOADING;
     end else begin
-      if (segment_counter == COUNT_PERIOD) begin
-        segment_counter <= 32'd0;
-        segment_state <= {segment_state[6:0],segment_state[7]};
-      end else begin
-        segment_counter <= segment_counter +1;
+      if (state == LOADING) begin
+        if (trigger_in) state <= READY;
+      end 
+      if (state == READY) begin
+        if (segment_counter == COUNT_PERIOD - 1) begin
+          segment_counter <= 32'd0;
+          segment_state <= {segment_state[6:0],segment_state[7]};
+        end else begin
+          segment_counter <= segment_counter +1;
+        end
       end
     end
   end
