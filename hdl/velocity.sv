@@ -8,7 +8,8 @@ module velocity #(
     input        logic receiver_data_valid_in, // ...........
     input        logic [15:0] receiver_data,   // 16-bit real receiver input
     output       logic doppler_ready,          // Ready signal for doppler_velocity module
-    output       logic [15:0] velocity_result  // Output velocity from doppler_velocity
+    output       logic [15:0] velocity_result,  // Output velocity from doppler_velocity
+    output       logic stored_towards_observer
 );
     // ./fftgen -n 16 -m 36 -f 2048
 
@@ -44,7 +45,18 @@ module velocity #(
     logic error_out;
     logic [31:0] velocity_calc;
     logic [31:0] numerator;
-    assign numerator = (peak_frequency - EMITTED_FREQUENCY) * SPEED_OF_SOUND;
+
+    logic towards_observer;
+    assign towards_observer = peak_frequency < EMITTED_FREQUENCY;
+    assign numerator = (towards_observer)? 
+                        (EMITTED_FREQUENCY - peak_frequency) * SPEED_OF_SOUND;
+                        (peak_frequency - EMITTED_FREQUENCY) * SPEED_OF_SOUND;
+
+
+    always_ff (@posedge clk_100mhz) begin
+        if (rst_in) stored_towards_observer <= 0;
+        if (peak_valid) stored_towards_observer <= towards_observer;
+    end
 
     // Doppler formula: velocity = (Δf / f_emit) * speed_of_sound
     // Δf = peak_frequency - EMITTED_FREQUENCY

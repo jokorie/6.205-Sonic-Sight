@@ -67,14 +67,14 @@ async def test_velocity_with_defined_velocity(dut):
             await RisingEdge(dut.clk_in)
 
     # Wait for FFT processing to complete
-    peak_detected = False
+    doppler_ready = False
     for _ in range(10000):  # Timeout after a large number of clock cycles
         await RisingEdge(dut.clk_in)
         if dut.doppler_ready.value:
-            peak_detected = True
+            doppler_ready = True
             break
 
-    assert peak_detected, "FFT did not produce a valid peak frequency output."
+    assert doppler_ready, "FFT did not produce a valid peak frequency output."
 
     # Calculate the expected velocity
     expected_velocity = desired_velocity  # This is the velocity we defined initially

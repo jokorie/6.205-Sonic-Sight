@@ -166,6 +166,7 @@ module top_level (
 
   logic ready_velocity;
   logic [15:0] velocity_result;
+  logic towards_observer;
 
   velocity velocity_calculator_inst (
     .clk_in(clk_in),
@@ -173,13 +174,15 @@ module top_level (
     .echo_detected(echo_detected),
     .receiver_data(buffered_aggregated_waveform),
     .doppler_ready(ready_velocity),
-    .velocity_result(velocity_result)
+    .velocity_result(velocity_result),
+    .stored_towards_observer(towards_observer)
   );
 
   logic stored_tof_ready;
   logic [15:0] stored_tof_range_out;
   logic stored_velocity_ready;
   logic [15:0] stored_velocity_result;
+  logic stored_towards_observer;
 
   always_ff (@posedge clk_100mhz) begin
     if (sys_rst || burst_start) begin
@@ -187,6 +190,7 @@ module top_level (
       stored_tof_range_out <= 0;
       stored_velocity_ready <= 0;
       stored_velocity_result <= 0;
+      stored_towards_observer <= 0;
     end else begin
       if (tof_valid_out) begin
         stored_tof_ready <= 1;
@@ -195,6 +199,7 @@ module top_level (
       if (ready_velocity) begin
         stored_velocity_ready <= 1;
         stored_velocity_result <= velocity_result;
+        stored_towards_observer <= towards_observer;
       end
     end
   end
