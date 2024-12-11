@@ -7,22 +7,22 @@ module bto7s(
 );
   always_comb begin
     case (x_in)
-      4'h0: s_out = 7'b0111111; // 0
-      4'h1: s_out = 7'b0000110; // 1
-      4'h2: s_out = 7'b1011011; // 2
-      4'h3: s_out = 7'b1001111; // 3
-      4'h4: s_out = 7'b1100110; // 4
-      4'h5: s_out = 7'b1101101; // 5
-      4'h6: s_out = 7'b1111101; // 6
-      4'h7: s_out = 7'b0000111; // 7
-      4'h8: s_out = 7'b1111111; // 8
-      4'h9: s_out = 7'b1101111; // 9
-      4'hA: s_out = 7'b1110111; // A
-      4'hB: s_out = 7'b1111100; // B (uppercase, can also be 7'b0111111 for lowercase 'b')
-      4'hC: s_out = 7'b0111001; // C
-      4'hD: s_out = 7'b1011110; // D (uppercase, can also be 7'b0011111 for lowercase 'd')
-      4'hE: s_out = 7'b1111001; // E
-      4'hF: s_out = 7'b1110001; // F
+      5'h0: s_out = 7'b0111111; // 0
+      5'h1: s_out = 7'b0000110; // 1
+      5'h2: s_out = 7'b1011011; // 2
+      5'h3: s_out = 7'b1001111; // 3
+      5'h4: s_out = 7'b1100110; // 4
+      5'h5: s_out = 7'b1101101; // 5
+      5'h6: s_out = 7'b1111101; // 6
+      5'h7: s_out = 7'b0000111; // 7
+      5'h8: s_out = 7'b1111111; // 8
+      5'h9: s_out = 7'b1101111; // 9
+      5'hA: s_out = 7'b1110111; // A
+      5'hB: s_out = 7'b1111100; // B (uppercase, can also be 7'b0111111 for lowercase 'b')
+      5'hC: s_out = 7'b0111001; // C
+      5'hD: s_out = 7'b1011110; // D (uppercase, can also be 7'b0011111 for lowercase 'd')
+      5'hE: s_out = 7'b1111001; // E
+      5'hF: s_out = 7'b1110001; // F
       5'h10: s_out = 7'b1000000;
       default: s_out = 7'b0000000;
     endcase

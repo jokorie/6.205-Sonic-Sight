@@ -44,6 +44,8 @@ module receive_beamformer #(
                 delay_samples[i] = ((SAMPLE_DELAY_PER_RECEIVER_COMP * i * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
             end
 
+
+            // can be sequential
             if (next_write_index > delay_samples[i]) begin
                 curr_read_index[i] = next_write_index - delay_samples[i] - 1;
             end else begin
