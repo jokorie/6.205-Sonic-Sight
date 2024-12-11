@@ -46,7 +46,7 @@ module top_level (
       .sig_out(active_pulse)
   );
 
-  always @(posedge clk_100mhz) begin
+  always_ff @(posedge clk_100mhz) begin
     if (sys_rst) begin
       burst_start <= 1;
     end else begin
@@ -57,7 +57,7 @@ module top_level (
       end
     end
   end
-  
+
   always_ff @(posedge clk_100mhz) begin
     prev_active_pulse <= active_pulse;
   end
