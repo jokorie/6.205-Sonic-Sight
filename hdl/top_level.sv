@@ -159,8 +159,8 @@ module top_level (
   logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 2 ADCs
 
   // ------------------- HARDCODED ----------------------------
-  assign adc_in[0] = spi_read_data_0;
-  assign adc_in[1] = spi_read_data_1;
+  assign adc_in[0] = {6'b0, spi_read_data_0[11:2]};
+  assign adc_in[1] = {6'b0, spi_read_data_1[11:2]};
   // ------------------- HARDCODED ----------------------------
 
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
