@@ -78,29 +78,30 @@ module top_level (
 logic signed [ANGLE_WIDTH-1:0] beam_angle;
 logic angle_going_right;
 
-  // Move from [-30, 30]. Step 10 degrees
-always_ff @(posedge clk_100mhz) begin
-    if (burst_start) begin
-        beam_angle <= 8'sb0;         // Reset the angle to 0
-        angle_going_right <= 1;      // Start moving in the positive direction
-    end else begin
-        if (angle_going_right) begin
-            if (beam_angle == 8'sd30) begin
-                beam_angle <= 8'sd20;        // Step back to 20 to reverse smoothly
-                angle_going_right <= 0;      // Reverse direction
-            end else begin
-                beam_angle <= beam_angle + 8'sd10; // Increment angle
-            end
-        end else begin // Moving left
-            if (beam_angle == -8'sd30) begin // Check for -30 limit
-                beam_angle <= -8'sd20;       // Step forward to -20 to reverse smoothly
-                angle_going_right <= 1;      // Reverse direction
-            end else begin
-                beam_angle <= beam_angle - 8'sd10; // Decrement angle
-            end
-        end
-    end
-end
+// Move from [-30, 30]. Step 10 degrees
+assign beam_angle = 8'sd0;
+// always_ff @(posedge clk_100mhz) begin
+//   if (burst_start) begin
+//     beam_angle <= 8'sb0;         // Reset the angle to 0
+//     angle_going_right <= 1;      // Start moving in the positive direction
+//   end else begin
+//     if (angle_going_right) begin
+//       if (beam_angle == 8'sd30) begin
+//         beam_angle <= beam_angle - 8'sd1;        // Step back to 20 to reverse smoothly
+//         angle_going_right <= 0;      // Reverse direction
+//       end else begin
+//         beam_angle <= beam_angle + 8'sd1; // Increment angle
+//       end
+//     end else begin // Moving left
+//       if (beam_angle == -8'sd30) begin // Check for -30 limit
+//         beam_angle <= beam_angle + 8'sd1;       // Step forward to -20 to reverse smoothly
+//         angle_going_right <= 1;      // Reverse direction
+//       end else begin
+//         beam_angle <= beam_angle - 8'sd1; // Decrement angle
+//       end
+//     end
+//   end
+// end
 
 
   logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle
@@ -267,6 +268,8 @@ end
     end
   end
 
+  logic ss_trigger_in = stored_tof_ready && stored_velocity_ready;
+
   logic [6:0] ss_c;
 
   // ------------------ DONT FORGET TO REMOVE -------------
@@ -280,10 +283,10 @@ end
   (
     .clk_in(clk_100mhz),                   // System clock input
     .rst_in(burst_start),                   // Active-high reset signal
-    .trigger_in(temp_ready),               // Trigger to move from LOADING to READY state
-    .distance_in(temp_dist),       // Distance in cm
-    .velocity_in(temp_velocity),       // Velocity in m/s (absolute value)
-    .towards_observer(temp_towards),         // Direction of velocity: 1 for "-", 0 for "+"
+    .trigger_in(temp_ready), // TODO: replace for ...(ss_trigger_in)               // Trigger to move from LOADING to READY state
+    .distance_in(temp_dist), // TODO: replace for ...(stored_tof_range_out)       // Distance in cm
+    .velocity_in(temp_velocity),  // TODO: replace for ...(stored_velocity_result)      // Velocity in m/s (absolute value)
+    .towards_observer(temp_towards), // TODO: replace for ...(stored_towards_observer)        // Direction of velocity: 1 for "-", 0 for "+"
     .angle_in(beam_angle),           // Angle value in degrees (0-360)
     .cat_out(ss_c),          // Segment control output for a-g segments
     .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
