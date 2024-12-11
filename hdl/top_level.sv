@@ -4,14 +4,13 @@ module top_level (
   input wire clk_100mhz,                   // 100 MHz onboard clock
   input wire [3:0] btn,                    // All four momentary button switches
   input wire [15:0] sw, //all 16 input slide switches
+  input wire cipo,
   output logic [3:0] ss0_an,//anode control for upper four digits of seven-seg display
   output logic [3:0] ss1_an,//anode control for lower four digits of seven-seg display
   output logic [6:0] ss0_c, //cathode controls for the segments of upper four digits
   output logic [6:0] ss1_c, //cathode controls for the segments of lower four digits
   output logic [3:0] transmitters_input,
   output wire dclk,
-  output wire copi,
-  input wire cipo,
   output wire cs
 );
 

@@ -91,7 +91,7 @@ set_property -dict {PACKAGE_PIN E5  IOSTANDARD LVCMOS33} [ get_ports "ss1_c[6]"]
 # PMOD A Signals
 
 set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33}  [ get_ports "cs" ]
-set_property -dict {PACKAGE_PIN F15 IOSTANDARD LVCMOS33}  [ get_ports "copi" ]
+# set_property -dict {PACKAGE_PIN F15 IOSTANDARD LVCMOS33}  [ get_ports "copi" ]
 set_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33}  [ get_ports "cipo" ]
 set_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33}  [ get_ports "dclk" ]
 
