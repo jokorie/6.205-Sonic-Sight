@@ -8,10 +8,10 @@ module top_level (
   output logic [3:0] transmitters_input
 );
 
-  localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles 
+  localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles a little under 2 tenths of seconds
   localparam BURST_DURATION = 524288; // 2^19 in clock cycles   
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
-  localparam SIN_WIDTH = 16;               // Bit width for sine values
+  localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSDUCERS = 4;
   localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
@@ -61,25 +61,25 @@ module top_level (
   // Move from [-30, 30]. Step 10 degrees
 
 
-  logic [SIN_WIDTH-1:0] sin_theta; // Sine value for beam_angle
+  logic [SIN_WIDTH-1:0] sin_value; // Sine value for beam_angle
   logic sign_bit;
   sin_lut #(
       .SIN_WIDTH(SIN_WIDTH),
       .ANGLE_WIDTH(ANGLE_WIDTH)
   ) sin_lookup (
-      .angle(beam_angle),
-      .sin_value(sin_theta),
-      .sign_bit(sign_bit)
+      .angle(beam_angle), // degrees off boresight
+      .sin_value(sin_value),
+      .sign_bit(sign_bit) // high if value is negative, low otw
   );
 
 
   // Transmit Beamforming Signals
-  logic tx_out [NUM_TRANSDUCERS-1:0];        // Output signals for the four transmitters
+  logic tx_out [NUM_TRANSDUCERS-1:0];        // output signals for beamforming module
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
     .rst_in(sys_rst || burst_start), // conditions to stop transmitting
-    .sin_theta(sin_theta),
+    .sin_value(sin_value),
     .sign_bit(sig_bit),
     .tx_out(tx_out)
   );
@@ -87,18 +87,20 @@ module top_level (
   assign transmitters_input = (active_pulse)? tx_out: 0;
 
   // TODO: INCLUDE SPI MODULE
-  logic [7:0]                trigger_count;
+  logic [7:0]                spi_trigger_count;
   logic                      spi_trigger;
   logic                      receiving;
 
-  evt_counter counter_1MHz_trigger
-   (.clk_in(clk_100mhz),
-    .rst_in(sys_rst),
+  evt_counter counter_1MHz_trigger (
+    .clk_in(clk_100mhz),
+    .rst_in(sys_rst || burst_start),
     .period_in(CYCLES_PER_TRIGGER),
     .evt_in(clk_100mhz && !active_pulse),
-    .count_out(trigger_count));
+    .count_out(spi_trigger_count)
+  );
 
-  assign spi_trigger = trigger_count == 0 && !active_pulse;
+  // may not ever be reached
+  assign spi_trigger = spi_trigger_count == 0 && !active_pulse;
 
   logic [ADC_DATA_WIDTH-1:0] spi_read_data;
   logic                      spi_read_data_valid;
@@ -121,20 +123,33 @@ module top_level (
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
-  receive_beamform rx_beamform_inst (
+  receive_beamformer rx_beamform_inst (
     .clk(clk_100mhz),
     .rst_n(sys_rst || burst_start),
     .adc_in(adc_in),
-    .sin_theta(sin_theta),
+    .sin_theta(sin_value),
     .sign_bit(sig_bit),
-    .data_valid_in(spi_read_data_valid),
+    .data_valid_in(spi_read_data_valid), // cannot be fpga clock
     .aggregated_waveform(aggregated_waveform)
   );
 
 
   // Echo Detection Signal
-  logic echo_detected; // maybe this should stay high
-  assign echo_detected = (aggregated_waveform > ECHO_THRESHOLD);
+  logic echo_detected;
+  logic [15:0] buffered_aggregated_waveform;
+
+  always_ff (@posedge clk_100mhz) begin
+    if (sys_rst || burst_start) begin
+      echo_detected <= 0;
+      buffered_aggregated_waveform <= 0;
+    end
+    else begin
+      buffered_aggregated_waveform <= aggregated_waveform;
+      if (aggregated_waveform > ECHO_THRESHOLD) begin
+        echo_detected <= 1;
+      end
+    end
+  end
 
   
   logic [15:0] range_out;
@@ -149,7 +164,6 @@ module top_level (
     .valid_out(tof_valid_out)
   );
 
-
   logic ready_velocity;
   logic [15:0] velocity_result;
 
@@ -157,10 +171,35 @@ module top_level (
     .clk_in(clk_in),
     .rst_in(sys_rst || burst_start),
     .echo_detected(echo_detected),
-    .receiver_data(aggregated_waveform),
+    .receiver_data(buffered_aggregated_waveform),
     .doppler_ready(ready_velocity),
     .velocity_result(velocity_result)
   );
+
+  logic stored_tof_ready;
+  logic [15:0] stored_tof_range_out;
+  logic stored_velocity_ready;
+  logic [15:0] stored_velocity_result;
+
+  always_ff (@posedge clk_100mhz) begin
+    if (sys_rst || burst_start) begin
+      stored_tof_ready <= 0;
+      stored_tof_range_out <= 0;
+      stored_velocity_ready <= 0;
+      stored_velocity_result <= 0;
+    end else begin
+      if (tof_valid_out) begin
+        stored_tof_ready <= 1;
+        stored_tof_range_out <= range_out;
+      end
+      if (ready_velocity) begin
+        stored_velocity_ready <= 1;
+        stored_velocity_result <= velocity_result;
+      end
+    end
+  end
+
+  
   
   // Seven Segment Controller Instance
   seven_segment_controller controller (
