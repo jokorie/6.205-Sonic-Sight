@@ -49,11 +49,11 @@ module velocity #(
     logic towards_observer;
     assign towards_observer = peak_frequency < EMITTED_FREQUENCY;
     assign numerator = (towards_observer)? 
-                        (EMITTED_FREQUENCY - peak_frequency) * SPEED_OF_SOUND;
+                        (EMITTED_FREQUENCY - peak_frequency) * SPEED_OF_SOUND:
                         (peak_frequency - EMITTED_FREQUENCY) * SPEED_OF_SOUND;
 
 
-    always_ff (@posedge clk_100mhz) begin
+    always_ff @(posedge clk_in) begin
         if (rst_in) stored_towards_observer <= 0;
         if (peak_valid) stored_towards_observer <= towards_observer;
     end

@@ -3,9 +3,16 @@
 module top_level (
   input wire clk_100mhz,                   // 100 MHz onboard clock
   input wire [3:0] btn,                    // All four momentary button switches
-  output logic [6:0] ss_c,                 // Cathode controls for the segments of the seven-segment display
-  output logic [7:0] ss_an,                 // Anode control for selecting display
-  output logic [3:0] transmitters_input
+  input wire [15:0] sw, //all 16 input slide switches
+  output logic [3:0] ss0_an,//anode control for upper four digits of seven-seg display
+  output logic [3:0] ss1_an,//anode control for lower four digits of seven-seg display
+  output logic [6:0] ss0_c, //cathode controls for the segments of upper four digits
+  output logic [6:0] ss1_c, //cathode controls for the segments of lower four digits
+  output logic [3:0] transmitters_input,
+  output wire dclk,
+  output wire copi,
+  input wire cipo,
+  output wire cs
 );
 
   localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles a little under 2 tenths of seconds
@@ -56,7 +63,7 @@ module top_level (
   );
 
 
-  logic signed [ANGLE_WIDTH-1:0] beam_angle
+  logic signed [ANGLE_WIDTH-1:0] beam_angle;
   assign beam_angle = 1'sb0; // static beam forming perpendicular to board, in line with boresight
   // Move from [-30, 30]. Step 10 degrees
 
@@ -74,7 +81,7 @@ module top_level (
 
 
   // Transmit Beamforming Signals
-  logic tx_out [NUM_TRANSDUCERS-1:0];        // output signals for beamforming module
+  logic [NUM_TRANSDUCERS-1:0] tx_out;        // output signals for beamforming module
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
@@ -138,7 +145,7 @@ module top_level (
   logic echo_detected;
   logic [15:0] buffered_aggregated_waveform;
 
-  always_ff (@posedge clk_100mhz) begin
+  always_ff @(posedge clk_100mhz) begin
     if (sys_rst || burst_start) begin
       echo_detected <= 0;
       buffered_aggregated_waveform <= 0;
@@ -184,7 +191,7 @@ module top_level (
   logic [15:0] stored_velocity_result;
   logic stored_towards_observer;
 
-  always_ff (@posedge clk_100mhz) begin
+  always_ff @(posedge clk_100mhz) begin
     if (sys_rst || burst_start) begin
       stored_tof_ready <= 0;
       stored_tof_range_out <= 0;
