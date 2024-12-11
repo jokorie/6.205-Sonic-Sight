@@ -57,9 +57,7 @@ module top_level (
       end
     end
   end
-
-  assign burst_start = active_pulse && ~prev_active_pulse;
-
+  
   always_ff @(posedge clk_100mhz) begin
     prev_active_pulse <= active_pulse;
   end
