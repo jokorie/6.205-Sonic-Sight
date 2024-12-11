@@ -1,8 +1,10 @@
-`timescale 1ns / 1ps
 `default_nettype none
 
 // Module to convert 4-bit input to seven-segment display output
-module bto7s(input wire [3:0] x_in, output logic [6:0] s_out);
+module bto7s(
+  input wire [4:0] x_in, 
+  output logic [6:0] s_out
+);
   always_comb begin
     case (x_in)
       4'h0: s_out = 7'b0111111; // 0
@@ -15,8 +17,14 @@ module bto7s(input wire [3:0] x_in, output logic [6:0] s_out);
       4'h7: s_out = 7'b0000111; // 7
       4'h8: s_out = 7'b1111111; // 8
       4'h9: s_out = 7'b1101111; // 9
-      4'hA: s_out = 7'b1110111; // Dash ('-')
-      default: s_out = 7'b0000000; // Default to all segments off
+      4'hA: s_out = 7'b1110111; // A
+      4'hB: s_out = 7'b1111100; // B (uppercase, can also be 7'b0111111 for lowercase 'b')
+      4'hC: s_out = 7'b0111001; // C
+      4'hD: s_out = 7'b1011110; // D (uppercase, can also be 7'b0011111 for lowercase 'd')
+      4'hE: s_out = 7'b1111001; // E
+      4'hF: s_out = 7'b1110001; // F
+      5'h10: s_out = 7'b1000000;
+      default: s_out = 7'b0000000;
     endcase
   end
 endmodule
