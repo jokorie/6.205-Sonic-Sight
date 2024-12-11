@@ -17,13 +17,13 @@ module top_level (
   output wire cs1
 );
 
-  localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles a little under 2 tenths of seconds
-  localparam BURST_DURATION = 524288; // 2^19 in clock cycles   
-  localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
+  localparam PERIOD_DURATION = 16777216;   // 2^24 in clock cycles a little under 2 tenths of seconds
+  localparam BURST_DURATION = 524288;      // 2^19 in clock cycles   
+  localparam ECHO_THRESHOLD = 5000;        // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSMITTERS = 2;
-  localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
+  localparam CYCLES_PER_TRIGGER  = 100;    // Clock Cycles between 1MHz trigger
   localparam ADC_DATA_WIDTH = 16;
   localparam ADC_DATA_CLK_PERIOD = 5;
 
@@ -54,7 +54,7 @@ module top_level (
     end
   end
 
-  assign burst_start == active_pulse && !prev_active_pulse;
+  assign burst_start = active_pulse && !prev_active_pulse;
 
 
 
