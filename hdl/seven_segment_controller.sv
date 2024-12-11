@@ -1,111 +1,79 @@
-`timescale 1ns / 1ps
 `default_nettype none
-
-module seven_segment_controller #(
-  parameter COUNT_PERIOD = 100000
-  )
+module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
   (
     input wire clk_in,                   // System clock input
     input wire rst_in,                   // Active-high reset signal
     input wire trigger_in,               // Trigger to move from LOADING to READY state
-    input wire [15:0] distance_in,       // 16-bit distance value input
+    input wire [15:0] distance_in,       // Distance in cm
+    input wire [15:0] velocity_in,       // Velocity in m/s (absolute value)
+    input wire towards_observer,         // Direction of velocity: 1 for "-", 0 for "+"
+    input wire [7:0] angle_in,           // Angle value in degrees (0-360)
     output logic [6:0] cat_out,          // Segment control output for a-g segments
     output logic [7:0] an_out            // Anode control output for selecting display
   );
 
-  // State definitions
-  parameter LOADING = 1'b0;
-  parameter READY   = 1'b1;
+  localparam dash_sel_value = 16;
+  localparam empty_sel_value = 17;
+ 
+  logic [7:0]   segment_state;
+  logic [31:0]  segment_counter;
+  logic [4:0]   sel_values;
+  logic [6:0]   led_out;
 
-  // Internal signals
-  logic state_reg, state_next;           // Current and next state (1-bit)
-  logic [2:0] segment_index;             // Index for current active display (0 to 7)
-  logic [31:0] segment_counter;          // Counter to manage display multiplexing
-  logic [3:0] sel_values;                // 4-bit value to be displayed on active segment
-  logic [6:0] led_out;                   // Output segment data from bto7s
+  logic [3:0] upper_dist_bits;
+  logic [3:0] lower_dist_bits;
 
-  // State transition logic (sequential)
-  always_ff @(posedge clk_in) begin
-    if (rst_in) begin
-      state_reg <= LOADING;             // Start in LOADING state after reset
-    end else begin
-      state_reg <= state_next;          // Move to the next state
-    end
-  end
+  assign upper_dist_bits = distance_in[7:4];
+  assign lower_dist_bits = distance_in[3:0];
 
-  // State transition conditions (combinational)
+  logic signed [9:0] signed_result; // size is determined as sufficient
+  logic [8:0] cos_angle;
+
+  logic signed [8:0] base;
+
+  assign signed_result = 9'sd90 - angle;
+
+  assign cos_angle = $unsigned(signed_result);
+  // Map input angle to LUT value
+
+  logic [3:0] upper_angle_bits;
+  logic [3:0] lower_angle_bits;
+
+  assign upper_angle_bits = cos_angle[7:4];
+  assign lower_angle_bits = cos_angle[3:0];
+ 
+  //TODO: wire up sel_values (-> x_in) with your input, val_in
+  //Note that x_in is a 4 bit input, and val_in is 32 bits wide
+  //Adjust accordingly, based on what you know re. which digits
+  //are displayed when...
   always_comb begin
-    state_next = state_reg;             // Default to hold state
-
-    case (state_reg)
-      LOADING: begin
-        if (trigger_in) begin
-          state_next = READY;           // Transition to READY when trigger is received
-        end
-      end
-
-      READY: begin
-        // Remain in READY state until reset
-        state_next = READY;
-      end
+    case (segment_state)
+      8'b0000_0001: sel_values = lower_angle_bits;
+      8'b0000_0010: sel_values = upper_angle_bits;
+      8'b0000_0100: sel_values = empty_sel_value; // should always be set to a point
+      8'b0000_1000: sel_values = lower_dist_bits;
+      8'b0001_0000: sel_values = upper_dist_bits;
+      8'b0010_0000: sel_values = empty_sel_value;
+      8'b0100_0000: sel_values = velocity_in; // type mismatch
+      8'b1000_0000: sel_values = (towards_observer)? empty_sel_value: dash_sel_value;
     endcase
   end
-
-    logic [2:0] distance_0;
-    logic [2:0] distance_1;
-    logic [2:0] distance_2;
-    logic [2:0] distance_3;
-
-    assign distance_0 = distance_in[3:0];
-    assign distance_1 = distance_in[7:4];
-    assign distance_2 = distance_in[11:8];
-    assign distance_3 = distance_in[15:12];
-
-  // Display logic (combinational)
-  always_comb begin
-    case (state_reg)
-      LOADING: begin
-        sel_values = 4'b1010; // Represents '-' character for each display
-      end
-      READY: begin
-        // Select the appropriate 4-bit segment value based on the active anode
-        case (segment_index)
-          3'd0: sel_values = distance_0;
-          3'd1: sel_values = distance_1;
-          3'd2: sel_values = distance_2;
-          3'd3: sel_values = distance_3;
-          default: sel_values = 4'b0000; // No value for unused displays
-        endcase
-      end
-      default: begin
-        sel_values = 4'b0000;  // Default to nothing
-      end
-    endcase
-  end
-
-  // Convert 4-bit value to seven-segment output using a helper module
+  
   bto7s mbto7s (.x_in(sel_values), .s_out(led_out));
-
-  // Invert outputs for common anode configuration
-  assign cat_out = ~led_out; 
-  assign an_out = ~(8'b00000001 << segment_index); // One-hot encoding for the active anode
-
-  // Always_ff block for managing multiplexing of the displays
-  always_ff @(posedge clk_in) begin
-    if (rst_in) begin
-      segment_index <= 3'd0;           // Start with the first display active
-      segment_counter <= 32'd0;
+  assign cat_out = ~led_out; //<--note this inversion is needed
+  assign an_out = ~segment_state; //note this inversion is needed
+ 
+  always_ff @(posedge clk_in)begin
+    if (rst_in)begin
+      segment_state <= 8'b0000_0001;
+      segment_counter <= 32'b0;
     end else begin
       if (segment_counter == COUNT_PERIOD) begin
         segment_counter <= 32'd0;
-        segment_index <= segment_index + 1;
-        if (segment_index == 3'd7)
-          segment_index <= 3'd0;       // Wrap around to the first segment
+        segment_state <= {segment_state[6:0],segment_state[7]};
       end else begin
-        segment_counter <= segment_counter + 1;
+        segment_counter <= segment_counter +1;
       end
     end
   end
-endmodule
-
-`default_nettype wire
+endmodule // seven_segment_controller
