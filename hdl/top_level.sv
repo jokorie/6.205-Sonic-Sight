@@ -45,22 +45,21 @@ module top_level (
       .default_offset(0),
       .sig_out(active_pulse)
   );
-
   always_ff @(posedge clk_100mhz) begin
     if (sys_rst) begin
       burst_start <= 1;
+      prev_active_pulse <= 0;
     end else begin
       if (active_pulse && ~prev_active_pulse) begin
         burst_start <= 1;
       end else begin
         burst_start <= 0;
       end
+      prev_active_pulse <= active_pulse;
     end
   end
 
-  always_ff @(posedge clk_100mhz) begin
-    prev_active_pulse <= active_pulse;
-  end
+
 
   logic [$clog2(PERIOD_DURATION)-1:0] time_since_emission;
 
@@ -70,7 +69,7 @@ module top_level (
   (
       .clk_in(clk_100mhz),
       .rst_in(sys_rst || burst_start), // conditions to reset burst
-      .evt_in(clk_100mhz),
+      .evt_in(1'b1),
       .count_out(time_since_emission)
   );
 
