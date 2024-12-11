@@ -143,8 +143,11 @@ module top_level (
 
   // Receive Beamforming Signals
   logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 4 ADCs
+  // ------------------- HARDCODED ----------------------------
   assign adc_in[0] = spi_read_data_0;
   assign adc_in[1] = spi_read_data_1;
+  // ------------------- HARDCODED ----------------------------
+
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
@@ -154,7 +157,7 @@ module top_level (
     .adc_in(adc_in),
     .sin_theta(sin_value),
     .sign_bit(sig_bit),
-    .data_valid_in(spi_read_data_valid), // cannot be fpga clock
+    .data_valid_in(spi_read_data_valid_0), // should tech be in sync w other read data valid
     .aggregated_waveform(aggregated_waveform)
   );
 
