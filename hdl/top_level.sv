@@ -269,10 +269,12 @@ end
 
   logic [6:0] ss_c;
 
+  // ------------------ DONT FORGET TO REMOVE -------------
   logic temp_ready = 1;
   logic [15:0] temp_dist = 100;
   logic [15:0] temp_velocity = 100;
   logic temp_towards = 0;
+  // ------------------ DONT FORGET TO REMOVE ------------
   
  seven_segment_controller ssc
   (
