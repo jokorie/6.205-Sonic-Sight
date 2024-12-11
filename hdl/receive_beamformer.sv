@@ -3,7 +3,7 @@
 module receive_beamformer #(
     parameter integer PERIOD_DURATION = 16777216,         // TODO: Default
     parameter integer BURST_DURATION = 524288,          // TODO: Default
-    parameter integer NUM_RECEIVERS = 4,          // Number of transmitters
+    parameter integer NUM_RECEIVERS = 2,          // Number of transmitters
     parameter integer BUFFER_SIZE = 80,        // Size of the circular buffer (sufficient for delays with margin). Thought. store the buffer size with perfect size such that wraps nicely
     parameter integer ELEMENT_SPACING = 9,          // Spacing between transmitters in mm
     parameter integer SPEED_OF_SOUND = 343000,      // Speed of sound in mm/s
@@ -15,7 +15,7 @@ module receive_beamformer #(
 )(
     input logic clk_in,                        // System clock
     input logic rst_in,                      // Active-low reset signal
-    input logic [15:0] adc_in [3:0], // Digital inputs from 4 ADCs
+    input logic [15:0] adc_in [1:0], // Digital inputs from 4 ADCs
     input  logic [SIN_WIDTH-1:0] sin_theta, // Sine value for beam_angle
     input  logic sign_bit,
     input  logic data_valid_in,            // ADC Ready Input
@@ -36,28 +36,6 @@ module receive_beamformer #(
     logic [31:0] combined_waveform;                   // Summation of delayed signals (32-bit to handle overflow)
 
     logic [DELAY_WIDTH-1:0] delay_samples [NUM_RECEIVERS-1:0];
-
-    logic [DELAY_WIDTH-1:0] delay_samples_0;
-    logic [DELAY_WIDTH-1:0] delay_samples_1;
-    logic [DELAY_WIDTH-1:0] delay_samples_2;
-    logic [DELAY_WIDTH-1:0] delay_samples_3;
-
-    logic [INDEX_WIDTH-1:0] read_index_0;
-    logic [INDEX_WIDTH-1:0] read_index_1;
-    logic [INDEX_WIDTH-1:0] read_index_2;
-    logic [INDEX_WIDTH-1:0] read_index_3;
-
-    logic [15:0] recent_wave_buffer_0;
-    logic [15:0] recent_wave_buffer_1;
-    logic [15:0] recent_wave_buffer_2;
-    logic [15:0] recent_wave_buffer_3;
-
-    logic [15:0] wave_comp_0;
-    logic [15:0] wave_comp_1;
-    logic [15:0] wave_comp_2;
-    logic [15:0] wave_comp_3;
-
-
     always_comb begin
         for (int i = 0; i < NUM_RECEIVERS; i++) begin
             if (sign_bit) begin // if receiving wave from left, delay left most receiver most
@@ -73,32 +51,12 @@ module receive_beamformer #(
             end
         end
 
-        delay_samples_0 = ((SAMPLE_DELAY_PER_RECEIVER_COMP * 0 * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
-        delay_samples_1 = ((SAMPLE_DELAY_PER_RECEIVER_COMP * 1 * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
-        delay_samples_2 = ((SAMPLE_DELAY_PER_RECEIVER_COMP * 2 * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
-        delay_samples_3 = ((SAMPLE_DELAY_PER_RECEIVER_COMP * 3 * sin_theta) >> (SIN_WIDTH - 1)) % BUFFER_SIZE;
-            
-        read_index_0 = curr_read_index[0];
-        read_index_1 = curr_read_index[1];
-        read_index_2 = curr_read_index[2];
-        read_index_3 = curr_read_index[3];
-
-        wave_comp_0 = wave_buffer[0][curr_read_index[0]];
-        wave_comp_1 = wave_buffer[1][curr_read_index[1]];
-        wave_comp_2 = wave_buffer[2][curr_read_index[2]];
-        wave_comp_3 = wave_buffer[3][curr_read_index[3]];
-
-        recent_wave_buffer_0 = adc_in[0];
-        recent_wave_buffer_1 = adc_in[1];
-        recent_wave_buffer_2 = adc_in[2];
-        recent_wave_buffer_3 = adc_in[3];
-
+        // ------------------- HARDCODED ----------------------------
         combined_waveform = (
                 wave_buffer[0][curr_read_index[0]] + 
-                wave_buffer[1][curr_read_index[1]] +
-                wave_buffer[2][curr_read_index[2]] +
-                wave_buffer[3][curr_read_index[3]]
-            ) >> 2;
+                wave_buffer[1][curr_read_index[1]]
+            ) >> 1;
+        // ------------------- HARDCODED ----------------------------
         aggregated_waveform = combined_waveform;
     end
 

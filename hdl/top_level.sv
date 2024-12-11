@@ -2,7 +2,8 @@
 
 module top_level (
   input wire clk_100mhz,                   // 100 MHz onboard clock
-  input wire cipo,
+  input wire cipo0,
+  input wire cipo1,
   input wire [3:0] btn,                    // All four momentary button switches
   input wire [15:0] sw, //all 16 input slide switches
   output logic [3:0] ss0_an,//anode control for upper four digits of seven-seg display
@@ -11,7 +12,8 @@ module top_level (
   output logic [6:0] ss1_c, //cathode controls for the segments of lower four digits
   output logic [3:0] transmitters_input,
   output wire dclk,
-  output wire cs
+  output wire cs0,
+  output wire cs1
 );
 
   localparam PERIOD_DURATION = 16777216; // 2^24 in clock cycles a little under 2 tenths of seconds
@@ -19,7 +21,7 @@ module top_level (
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
-  localparam NUM_TRANSDUCERS = 4;
+  localparam NUM_TRANSMITTERS = 2;
   localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
   localparam ADC_DATA_WIDTH = 16;
   localparam ADC_DATA_CLK_PERIOD = 5;
@@ -80,7 +82,7 @@ module top_level (
 
 
   // Transmit Beamforming Signals
-  logic [NUM_TRANSDUCERS-1:0] tx_out;        // output signals for beamforming module
+  logic [NUM_TRANSMITTERS-1:0] tx_out;        // output signals for beamforming module
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
@@ -107,24 +109,45 @@ module top_level (
 
   assign spi_trigger = spi_trigger_count == 0 && !active_pulse;
 
-  logic [ADC_DATA_WIDTH-1:0] spi_read_data;
-  logic                      spi_read_data_valid;
+  logic [ADC_DATA_WIDTH-1:0] spi_read_data_0;
+  logic [ADC_DATA_WIDTH-1:0] spi_read_data_1;
+  logic                      spi_read_data_valid_0;
+  logic                      spi_read_data_valid_1;
+
 
   spi_con
   #(  .DATA_WIDTH(ADC_DATA_WIDTH),
       .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
-  ) spi_controller
+  ) spi_controller_0
   (   .clk_in(clk_100mhz),
       .rst_in(sys_rst || burst_start),
       .trigger_in(spi_trigger),
-      .data_out(spi_read_data),
-      .data_valid_out(spi_read_data_valid),
-      .chip_data_in(cipo), // sdata on adc
+      .data_out(spi_read_data_0),
+      .data_valid_out(spi_read_data_valid_0),
+      .chip_data_in(cipo0), // sdata on adc
       .chip_clk_out(dclk), // sclk on adc
-      .chip_sel_out(cs));   // CS on adc
+      .chip_sel_out(cs0));   // CS on adc
+
+  spi_con
+  #(  .DATA_WIDTH(ADC_DATA_WIDTH),
+      .DATA_CLK_PERIOD(ADC_DATA_CLK_PERIOD)
+  ) spi_controller_1
+  (   .clk_in(clk_100mhz),
+      .rst_in(sys_rst || burst_start),
+      .trigger_in(spi_trigger),
+      .data_out(spi_read_data_1),
+      .data_valid_out(spi_read_data_valid_1),
+      .chip_data_in(cipo1), // sdata on adc
+      .chip_clk_out(dclk), // sclk on adc
+      .chip_sel_out(cs1));   // CS on adc
 
   // Receive Beamforming Signals
-  logic [15:0] adc_in [NUM_TRANSDUCERS-1:0];        // Digital inputs from the 4 ADCs
+  logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 4 ADCs
+  // ------------------- HARDCODED ----------------------------
+  assign adc_in[0] = spi_read_data_0;
+  assign adc_in[1] = spi_read_data_1;
+  // ------------------- HARDCODED ----------------------------
+
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
 
   // Receive Beamforming Instance
@@ -134,7 +157,7 @@ module top_level (
     .adc_in(adc_in),
     .sin_theta(sin_value),
     .sign_bit(sig_bit),
-    .data_valid_in(spi_read_data_valid), // cannot be fpga clock
+    .data_valid_in(spi_read_data_valid_0), // should tech be in sync w other read data valid
     .aggregated_waveform(aggregated_waveform)
   );
 
