@@ -10,8 +10,9 @@ module top_level (
   output logic [3:0] ss1_an,//anode control for lower four digits of seven-seg display
   output logic [6:0] ss0_c, //cathode controls for the segments of upper four digits
   output logic [6:0] ss1_c, //cathode controls for the segments of lower four digits
-  output logic [3:0] transmitters_input,
-  output wire dclk,
+  output logic [1:0] transmitters_input,
+  output wire dclk0,
+  output wire dclk1,
   output wire cs0,
   output wire cs1
 );
@@ -59,7 +60,7 @@ module top_level (
   (
       .clk_in(clk_100mhz),
       .rst_in(sys_rst || burst_start), // conditions to reset burst
-      .evt_in(clk_in),
+      .evt_in(clk_100mhz),
       .count_out(time_since_emission)
   );
 
@@ -88,7 +89,7 @@ module top_level (
     .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start), // conditions to stop transmitting
     .sin_value(sin_value),
-    .sign_bit(sig_bit),
+    .sign_bit(sign_bit),
     .tx_out(tx_out)
   );
 
@@ -99,10 +100,12 @@ module top_level (
   logic                      spi_trigger;
   logic                      receiving;
 
-  evt_counter counter_1MHz_trigger (
+  evt_counter  
+  #(.MAX_COUNT(CYCLES_PER_TRIGGER)
+    ) counter_1MHz_trigger 
+    (
     .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start),
-    .period_in(CYCLES_PER_TRIGGER),
     .evt_in(clk_100mhz && !active_pulse),
     .count_out(spi_trigger_count)
   );
@@ -125,7 +128,7 @@ module top_level (
       .data_out(spi_read_data_0),
       .data_valid_out(spi_read_data_valid_0),
       .chip_data_in(cipo0), // sdata on adc
-      .chip_clk_out(dclk), // sclk on adc
+      .chip_clk_out(dclk0), // sclk on adc
       .chip_sel_out(cs0));   // CS on adc
 
   spi_con
@@ -138,7 +141,7 @@ module top_level (
       .data_out(spi_read_data_1),
       .data_valid_out(spi_read_data_valid_1),
       .chip_data_in(cipo1), // sdata on adc
-      .chip_clk_out(dclk), // sclk on adc
+      .chip_clk_out(dclk1), // sclk on adc
       .chip_sel_out(cs1));   // CS on adc
 
   // Receive Beamforming Signals
@@ -157,7 +160,7 @@ module top_level (
     .rst_in(sys_rst || burst_start),
     .adc_in(adc_in),
     .sin_theta(sin_value),
-    .sign_bit(sig_bit),
+    .sign_bit(sign_bit),
     .data_valid_in(spi_read_data_valid_0), // should tech be in sync w other read data valid
     .aggregated_waveform(aggregated_waveform)
   );
@@ -200,7 +203,6 @@ module top_level (
   velocity velocity_calculator_inst (
     .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start),
-    .echo_detected(echo_detected),
     .receiver_data(buffered_aggregated_waveform),
     .doppler_ready(ready_velocity),
     .velocity_result(velocity_result),
@@ -236,14 +238,14 @@ module top_level (
   
   
   // Seven Segment Controller Instance
-  seven_segment_controller controller (
-    .clk_in(clk_100mhz),
-    .rst_in(sys_rst || burst_start),
-    .trigger_in(tof_valid_out), // TODO: how do you want to handle undetected objects
-    .distance_in(range_out),
-    .cat_out(ss_c),
-    .an_out(ss_an)
-  );
+  // seven_segment_controller controller (
+  //   .clk_in(clk_100mhz),
+  //   .rst_in(sys_rst || burst_start),
+  //   .trigger_in(tof_valid_out), // TODO: how do you want to handle undetected objects
+  //   .distance_in(range_out),
+  //   .cat_out(ss_c),
+  //   .an_out(ss_an)
+  // );
 
 endmodule
 

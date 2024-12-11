@@ -7,7 +7,7 @@ module pwm #(
 (
     input  wire clk_in,
     input  wire rst_in,
-    input logic[$clog2(PERIOD_IN_CLOCK_CYCLES)-1:0] default_offset,
+    input wire[$clog2(PERIOD_IN_CLOCK_CYCLES)-1:0] default_offset,
     output logic sig_out
 );
 

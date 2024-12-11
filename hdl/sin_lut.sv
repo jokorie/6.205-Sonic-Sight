@@ -4,7 +4,7 @@ module sin_lut #(
     parameter integer SIN_WIDTH = 17,         // Width of sine values
     parameter integer ANGLE_WIDTH = 8        // Width of input angle (e.g., 0-127 for 128 entries)
 )(
-    input  logic signed [ANGLE_WIDTH-1:0] angle,     // Input angle (e.g., 0-127 for 0° to 180°)
+    input wire signed [ANGLE_WIDTH-1:0] angle,     // Input angle (e.g., 0-127 for 0° to 180°)
     output logic [SIN_WIDTH-1:0] sin_value, // Output sine value
     output logic sign_bit  // high is negative output
 );

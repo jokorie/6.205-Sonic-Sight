@@ -4,10 +4,10 @@ module fft_wrapper #(
     parameter SAMPLE_RATE = 1000000,   // Sampling rate in Hz
     parameter FFT_SIZE = 2048        // Number of FFT points
 ) (
-    input  logic                   clk_in,            // System clock
-    input  logic                   rst_in,          // Synchronous rst_in
-    input  logic                   ce,             // Clock enable for FFT input
-    input  logic [31:0]            sample_in,      // Packed real and imaginary input
+    input wire                   clk_in,            // System clock
+    input wire                   rst_in,          // Synchronous rst_in
+    input wire                   ce,             // Clock enable for FFT input
+    input wire [31:0]            sample_in,      // Packed real and imaginary input
     output logic [31:0]            peak_frequency, // Peak frequency in Hz
     output logic                   peak_valid      // Valid signal for peak frequency
 );

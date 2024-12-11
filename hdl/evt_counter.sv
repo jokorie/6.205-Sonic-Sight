@@ -2,12 +2,12 @@
 
 // Can track MAX_COUNT counts. Does not include MAX_COUNT
 module evt_counter #(
-    parameter MAX_COUNT = 4294967296 // some power of 2. prolly 2^32
+    parameter MAX_COUNT = 2147483647 // some power of 2. prolly 2^32
 )
   ( input wire           clk_in,
     input wire           rst_in,
     input wire           evt_in,
-    input logic[$clog2(MAX_COUNT)-1:0] default_offset,
+    input wire[$clog2(MAX_COUNT)-1:0] default_offset,
     output logic[$clog2(MAX_COUNT)-1:0] count_out // Adjust bit-width dynamically
   );
 

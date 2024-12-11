@@ -10,10 +10,10 @@ module transmit_beamformer #(
     parameter integer CLK_FREQ = 100000000,         // System clock frequency in Hz
     parameter integer SIN_WIDTH = 17               // Bit width for sine values
 )(
-    input  logic clk_in,                               // System clock
-    input  logic rst_in,                            // Active-low reset signal
-    input  logic [SIN_WIDTH-1:0] sin_value, // Sine value for beam_angle
-    input  logic sign_bit,
+    input wire clk_in,                               // System clock
+    input wire rst_in,                            // Active-low reset signal
+    input wire [SIN_WIDTH-1:0] sin_value, // Sine value for beam_angle
+    input wire sign_bit,
     output logic [NUM_TRANSMITTERS-1:0] tx_out       // Output signals for transmitters
 );
 

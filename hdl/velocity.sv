@@ -3,10 +3,10 @@
 module velocity #(
     parameter EMITTED_FREQUENCY = 40000
 ) (
-    input        logic clk_in,                 // System clock
-    input        logic rst_in,                 // System reset
-    input        logic receiver_data_valid_in, // ...........
-    input        logic [15:0] receiver_data,   // 16-bit real receiver input
+    input        wire clk_in,                 // System clock
+    input        wire rst_in,                 // System reset
+    input        wire receiver_data_valid_in, // ...........
+    input        wire [15:0] receiver_data,   // 16-bit real receiver input
     output       logic doppler_ready,          // Ready signal for doppler_velocity module
     output       logic [15:0] velocity_result,  // Output velocity from doppler_velocity
     output       logic stored_towards_observer

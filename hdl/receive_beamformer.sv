@@ -13,12 +13,12 @@ module receive_beamformer #(
     parameter integer SIN_WIDTH = 17,               // Bit width for sine values
     parameter integer DELAY_WIDTH = 16              // Bit width for dynamic delays
 )(
-    input logic clk_in,                        // System clock
-    input logic rst_in,                      // Active-low reset signal
-    input logic [15:0] adc_in [1:0], // Digital inputs from 4 ADCs
-    input  logic [SIN_WIDTH-1:0] sin_theta, // Sine value for beam_angle
-    input  logic sign_bit,
-    input  logic data_valid_in,            // ADC Ready Input
+    input wire clk_in,                        // System clock
+    input wire rst_in,                      // Active-low reset signal
+    input wire [15:0] adc_in [1:0], // Digital inputs from 4 ADCs
+    input wire [SIN_WIDTH-1:0] sin_theta, // Sine value for beam_angle
+    input wire sign_bit,
+    input wire data_valid_in,            // ADC Ready Input
     output logic [15:0] aggregated_waveform // Aggregated output waveform
 );
 

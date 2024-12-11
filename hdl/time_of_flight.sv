@@ -1,10 +1,10 @@
 `default_nettype none
 
 module time_of_flight (
-    input  logic [31:0] time_since_emission, // Time since emission in clock cycles
-    input  logic        echo_detected,       // Signal indicating the reflected pulse has been received
-    input  logic        clk_in,              // 100 MHz clock for precise timing
-    input  logic        rst_in,              // Active-high reset signal
+    input wire [31:0] time_since_emission, // Time since emission in clock cycles
+    input wire        echo_detected,       // Signal indicating the reflected pulse has been received
+    input wire        clk_in,              // 100 MHz clock for precise timing
+    input wire        rst_in,              // Active-high reset signal
     output logic [15:0] range_out,           // Calculated distance output in centimeters
     output logic        valid_out           // Output validity flag
 );
