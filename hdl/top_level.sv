@@ -2,6 +2,7 @@
 
 module top_level (
   input wire clk_100mhz,                   // 100 MHz onboard clock
+  input wire cipo,
   input wire [3:0] btn,                    // All four momentary button switches
   input wire [15:0] sw, //all 16 input slide switches
   output logic [3:0] ss0_an,//anode control for upper four digits of seven-seg display
@@ -10,8 +11,6 @@ module top_level (
   output logic [6:0] ss1_c, //cathode controls for the segments of lower four digits
   output logic [3:0] transmitters_input,
   output wire dclk,
-  output wire copi,
-  input wire cipo,
   output wire cs
 );
 
@@ -106,7 +105,6 @@ module top_level (
     .count_out(spi_trigger_count)
   );
 
-  // may not ever be reached
   assign spi_trigger = spi_trigger_count == 0 && !active_pulse;
 
   logic [ADC_DATA_WIDTH-1:0] spi_read_data;

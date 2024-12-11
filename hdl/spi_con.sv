@@ -1,57 +1,79 @@
-`timescale 1ns / 1ps
 `default_nettype none
 
 module spi_con
      #(parameter DATA_WIDTH = 8,
        parameter DATA_CLK_PERIOD = 100
       )
-      (input wire   clk_in,
-       input wire   rst_in,
-       input wire   trigger_in,
-       output logic [DATA_WIDTH-1:0] data_out,
+      (input wire   clk_in, //system clock (100 MHz)
+       input wire   rst_in, //reset in signal
+       input wire   [DATA_WIDTH-1:0] data_in, //data to send
+       input wire   trigger_in, //start a transaction
+       output logic [DATA_WIDTH-1:0] data_out, //data received!
        output logic data_valid_out, //high when output data is present.
-
-       input wire   chip_data_in,  // (CIPO) ~ build up data from adc in data_out
-       output logic chip_clk_out,  // (DCLK)
-       output logic chip_sel_out   // (CS)
+ 
+       output logic chip_data_out, //(COPI)
+       input wire   chip_data_in, //(CIPO)
+       output logic chip_clk_out, //(DCLK)
+       output logic chip_sel_out // (CS)
       );
-      localparam DCLK_PERIOD = (DATA_CLK_PERIOD[0] & 1'b1) ? DATA_CLK_PERIOD-1 : DATA_CLK_PERIOD;
-     
-      logic [$clog2(DATA_WIDTH):0] series_count;
-      logic [$clog2(DCLK_PERIOD):0] period_count;
 
-    
-      always_ff @(posedge clk_in) begin
-	      data_valid_out <= 0;
-	      if (rst_in) begin // reset output signals
-          data_out <= 0;
-          data_valid_out <= 0;
-          chip_clk_out <= 0;
-          chip_sel_out <= 1;
-        end else if (trigger_in && chip_sel_out) begin // begin transaction if CS is still high
-          chip_sel_out <= 0; // set CS low
-          period_count <= 1'b1;
-          series_count <= 1'b0;
-        end else if (~chip_sel_out) begin // in middle of transmitting data
-          if(period_count === DCLK_PERIOD>>1) begin // rising edge
-            chip_clk_out <= 1'b1; // set DCLK to high
-            data_out <= {data_out[DATA_WIDTH-2:0], chip_data_in}; // read CIPO
-            series_count <= series_count + 1; // count
-            period_count <= period_count + 1; // count dclk cycle
-          end else if (period_count === DCLK_PERIOD) begin // falling edge
-            if (series_count == DATA_WIDTH) begin
-              chip_sel_out <= 1; // set CS high
-              chip_clk_out <= 0; // set DCLK low
-              data_valid_out <= 1; // set data ready to read
-              series_count <= 0; // reset
-            end else begin
-              chip_clk_out <= 1'b1; // set DCLK to high
-              period_count <= 1; // reset period
+  localparam new_data_clk_period = (DATA_CLK_PERIOD & 1'b1)? DATA_CLK_PERIOD - 1: DATA_CLK_PERIOD;
+  localparam new_half_data_clk_period = new_data_clk_period >> 1;
+
+  logic [DATA_WIDTH-2:0] stored_data_in;
+  logic [DATA_WIDTH-1:0] stored_data_out;
+  logic [$clog2(new_data_clk_period):0] period_count;
+  logic [$clog2(DATA_WIDTH)+1:0] data_count; // data transmitted
+  
+  always_ff@(posedge clk_in) begin 
+    if (rst_in) begin // might not need all 
+        chip_data_out <= 0;
+        chip_clk_out <= 0;
+        chip_sel_out <= 1;
+        period_count <= 0;
+        data_out <= 0;
+        data_valid_out <= 0;
+        data_count <= 0;
+        stored_data_in <= 0;
+        stored_data_out <= 0;
+    end else begin 
+        // handle initialization of process
+        if (trigger_in && chip_sel_out) begin
+            chip_sel_out <= 0; // CS --> 0
+            period_count <= 0; // TODO: correct? what if new data clk period == 1
+            stored_data_in <= data_in[DATA_WIDTH-2:0];
+            data_count <= 0;
+            chip_data_out <= data_in[DATA_WIDTH-1];
+
+        end else if (!chip_sel_out) begin
+            period_count <= (period_count == (new_data_clk_period - 1))? 0: period_count + 1;
+            data_count <= (period_count == (new_half_data_clk_period - 1))? data_count + 1: data_count;
+
+            // on rising edge
+            if (period_count == (new_half_data_clk_period - 1)) begin
+                stored_data_out <= {stored_data_out[DATA_WIDTH-2:0], chip_data_in};
+                chip_clk_out <= 1;
+
+            // on falling edge
+            end else if (period_count == (new_data_clk_period - 1)) begin
+                chip_clk_out <= 0;
+                // termination
+                if (data_count == (DATA_WIDTH)) begin // should be data width
+                    data_out <= stored_data_out;
+                    data_valid_out <= 1;
+                    chip_sel_out <= 1;
+
+                end else begin 
+                    chip_data_out <= stored_data_in[DATA_WIDTH-2];
+                    stored_data_in <= stored_data_in << 1;                    
+                end
             end
-          end else begin period_count <= period_count +1; end
-        end	
-      end // end of always ff
-
+        end else begin
+            data_valid_out <= 0;
+        end
+    end 
+  end
+ 
 endmodule
 
 `default_nettype wire
