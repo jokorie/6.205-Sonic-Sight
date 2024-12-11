@@ -78,7 +78,7 @@ module top_level (
 
 
   logic signed [ANGLE_WIDTH-1:0] beam_angle;
-  assign beam_angle = 1'sb0; // static beam forming perpendicular to board, in line with boresight
+  assign beam_angle = 8'sb0; // static beam forming perpendicular to board, in line with boresight
   // Move from [-30, 30]. Step 10 degrees
 
 
@@ -251,7 +251,7 @@ module top_level (
   logic temp_ready = 1;
   logic [15:0] temp_dist = 100;
   logic [15:0] temp_velocity = 100;
-  logic temp_towards = 1;
+  logic temp_towards = 0;
   
  seven_segment_controller ssc
   (
@@ -261,7 +261,7 @@ module top_level (
     .distance_in(temp_dist),       // Distance in cm
     .velocity_in(temp_velocity),       // Velocity in m/s (absolute value)
     .towards_observer(temp_towards),         // Direction of velocity: 1 for "-", 0 for "+"
-    .angle_in(),           // Angle value in degrees (0-360)
+    .angle_in(beam_angle),           // Angle value in degrees (0-360)
     .cat_out(ss_c),          // Segment control output for a-g segments
     .an_out({ss0_an, ss1_an})            // Anode control output for selecting display
   );
