@@ -21,7 +21,8 @@ module top_level (
 
   localparam PERIOD_DURATION = 16777216;   // 2^24 in clock cycles a little under 2 tenths of seconds
   localparam BURST_DURATION = 524288;      // 2^19 in clock cycles   
-  localparam ECHO_THRESHOLD = 5000;        // Example threshold for detection
+  // localparam ECHO_THRESHOLD = 5000;        // Example threshold for detection
+  localparam ECHO_THRESHOLD = 0;        // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
   localparam NUM_TRANSMITTERS = 2;
@@ -255,7 +256,7 @@ module top_level (
  seven_segment_controller ssc
   (
     .clk_in(clk_100mhz),                   // System clock input
-    .rst_in(0),                   // Active-high reset signal
+    .rst_in(sys_rst || burst_start),                   // Active-high reset signal
     .trigger_in(temp_ready),               // Trigger to move from LOADING to READY state
     .distance_in(temp_dist),       // Distance in cm
     .velocity_in(temp_velocity),       // Velocity in m/s (absolute value)
