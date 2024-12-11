@@ -31,7 +31,7 @@ module seven_segment_controller #(parameter COUNT_PERIOD = 100000)
 
   logic signed [8:0] base;
 
-  assign signed_result = 9'sd90 - angle;
+  assign signed_result = 9'sd90 - angle_in;
 
   assign cos_angle = $unsigned(signed_result);
   // Map input angle to LUT value

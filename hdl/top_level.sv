@@ -96,9 +96,8 @@ module top_level (
   assign transmitters_input = (active_pulse)? tx_out: 0;
 
   // TODO: INCLUDE SPI MODULE
-  logic [7:0]                spi_trigger_count;
+  logic [6:0]                spi_trigger_count;
   logic                      spi_trigger;
-  logic                      receiving;
 
   evt_counter  
   #(.MAX_COUNT(CYCLES_PER_TRIGGER)
@@ -106,7 +105,7 @@ module top_level (
     (
     .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start),
-    .evt_in(clk_100mhz && !active_pulse),
+    .evt_in(!active_pulse),
     .count_out(spi_trigger_count)
   );
 
