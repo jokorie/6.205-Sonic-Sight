@@ -39,7 +39,7 @@ module top_level (
       .PERIOD_IN_CLOCK_CYCLES(PERIOD_DURATION), // Cumulative delay
       .DUTY_CYCLE_ON(BURST_DURATION)
   ) pulse_cooldown (
-      .clk_in(clk),
+      .clk_in(clk_100mhz),
       .rst_in(sys_rst),
       .default_offset(0),
       .sig_out(active_pulse)
@@ -57,7 +57,7 @@ module top_level (
     .MAX_COUNT(PERIOD_DURATION)
   ) time_counter
   (
-      .clk_in(clk_in),
+      .clk_in(clk_100mhz),
       .rst_in(sys_rst || burst_start), // conditions to reset burst
       .evt_in(clk_in),
       .count_out(time_since_emission)
@@ -85,7 +85,7 @@ module top_level (
   logic [NUM_TRANSMITTERS-1:0] tx_out;        // output signals for beamforming module
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
-    .clk(clk_100mhz),
+    .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start), // conditions to stop transmitting
     .sin_value(sin_value),
     .sign_bit(sig_bit),
@@ -153,8 +153,8 @@ module top_level (
 
   // Receive Beamforming Instance
   receive_beamformer rx_beamform_inst (
-    .clk(clk_100mhz),
-    .rst_n(sys_rst || burst_start),
+    .clk_in(clk_100mhz),
+    .rst_in(sys_rst || burst_start),
     .adc_in(adc_in),
     .sin_theta(sin_value),
     .sign_bit(sig_bit),
@@ -198,7 +198,7 @@ module top_level (
   logic towards_observer;
 
   velocity velocity_calculator_inst (
-    .clk_in(clk_in),
+    .clk_in(clk_100mhz),
     .rst_in(sys_rst || burst_start),
     .echo_detected(echo_detected),
     .receiver_data(buffered_aggregated_waveform),
