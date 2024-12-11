@@ -3,7 +3,7 @@
 module transmit_beamformer #(
     parameter integer PERIOD_DURATION = 16777216,         // TODO: Default
     parameter integer BURST_DURATION = 524288,          // TODO: Default
-    parameter integer NUM_TRANSMITTERS = 4,          // Number of transmitters
+    parameter integer NUM_TRANSMITTERS = 2,          // Number of transmitters
     parameter integer ELEMENT_SPACING = 9,          // Spacing between transmitters in mm
     parameter integer SPEED_OF_SOUND = 343000,      // Speed of sound in mm/s
     parameter integer TARGET_FREQ = 40000,          // Target frequency in Hz

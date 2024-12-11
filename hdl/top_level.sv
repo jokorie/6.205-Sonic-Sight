@@ -21,7 +21,7 @@ module top_level (
   localparam ECHO_THRESHOLD = 5000; // Example threshold for detection
   localparam SIN_WIDTH = 17;               // Bit width for sine values
   localparam ANGLE_WIDTH = 8;              // Bit width for beam angle input
-  localparam NUM_TRANSDUCERS = 4;
+  localparam NUM_TRANSMITTERS = 2;
   localparam CYCLES_PER_TRIGGER  = 100; // Clock Cycles between 1MHz trigger
   localparam ADC_DATA_WIDTH = 16;
   localparam ADC_DATA_CLK_PERIOD = 5;
@@ -82,7 +82,7 @@ module top_level (
 
 
   // Transmit Beamforming Signals
-  logic [NUM_TRANSDUCERS-1:0] tx_out;        // output signals for beamforming module
+  logic [NUM_TRANSMITTERS-1:0] tx_out;        // output signals for beamforming module
   // Transmit Beamforming Instance
   transmit_beamformer tx_beamformer_inst (
     .clk(clk_100mhz),
@@ -142,7 +142,7 @@ module top_level (
       .chip_sel_out(cs1));   // CS on adc
 
   // Receive Beamforming Signals
-  logic [15:0] adc_in [NUM_TRANSDUCERS-1:0];        // Digital inputs from the 4 ADCs
+  logic [15:0] adc_in [NUM_TRANSMITTERS-1:0];        // Digital inputs from the 4 ADCs
   assign adc_in[0] = spi_read_data_0;
   assign adc_in[1] = spi_read_data_1;
   logic [15:0] aggregated_waveform; // Aggregated output waveform from the receivers
